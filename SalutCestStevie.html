@@ -1,0 +1,572 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Salut, c'est stevie</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  
+</head>
+<body>
+<div>
+ Salut, c'est stevie.<br/>
+
+Après un an de recherche d'emploi à Lyon sans succès, le temps arrive de prendre des decisions. Si Audrey et moi cherchons toujours en avril, nous devrons quitter la France.<br/><br/>
+
+
+<i>Mais non! On a même pas commencé de faire des choses comme<br/> jamais fait en des rêves hors du monde!</i><br/><br/>
+
+
+C'est vrai, nos vies à Lyon ont toujours attendues des nouvelles d'un statut plus stable, donc on a pas encore eu l'occasion de sortir avec des amis ou organiser des événements chez nous.<br/><br/>
+
+Cependant, si tu entends des opportunités dans les domaines de vidéo, des jeux, des événements, l'informatique, ou l'électronique, ils pourraient changer tout pour nous.<br/><br/>
+
+J'aurais aimé ne pas te déranger avec tout ça, mais quitter le pays ne nous rapprochera probablement pas non plus. Donc voilà le chantage.<br/><br/>
+J'ai réalisé le fond d'écran de cette page. J'espère qu'il te fais ressentir plus de joie que de nausée. Si tu me trouves un travail, je cuisinerai pour toi pendant que tu le regardes.<br/><br/>
+<small>stevie  -  
+07 80 76 87 58  -  
+SRGeorgeJr@gmail.com</small>
+  </div>
+</body>
+  
+
+
+
+<script>
+// -- https://xemantic.github.io/shader-web-background/
+
+const shaderWebBackground={};
+(()=>{'use strict';
+const t=(a,b)=>{
+	b.initHalfFloatRGBATexture(b.width,b.height);
+	a.texParameteri(a.TEXTURE_2D,
+	a.TEXTURE_MIN_FILTER,a.LINEAR);
+	a.texParameteri(a.TEXTURE_2D,a.TEXTURE_MAG_FILTER, a.LINEAR);
+	a.texParameteri(a.TEXTURE_2D,a.TEXTURE_WRAP_S,a.CLAMP_TO_EDGE);
+	a.texParameteri(a.TEXTURE_2D, a.TEXTURE_WRAP_T,a.CLAMP_TO_EDGE)
+	}, 
+	x=(a,b)=>{
+		console.warn("shader-web-background cannot shade, adding fallback CSS classes");
+		document.documentElement.classList.add("shader-web-background-fallback");
+		b.classList.add("shader-web-background-fallback");
+		if(a instanceof shaderWebBackground.GlError)console.warn("Not sufficient WebGL support:", a);
+		else throw a;
+		};
+	function y(a,b){
+		if(!a)throw new shaderWebBackground.ConfigError(b);
+	}
+	function z(a){y(a instanceof HTMLCanvasElement,"config.canvas must be instance of canvas");
+	return a}
+	function A(){
+		const a=document.createElement("canvas"),b=a.style;
+		a.id="shader-web-background";
+		b.width="100vw";
+		b.height="100vh";
+		b.position="fixed";
+		b.top="0";
+		b.left="0";
+		b.zIndex=-9999;
+		return a
+	}
+	function B(a,b,c){
+		y(a instanceof HTMLScriptElement&&a.type===b,'Shader source element of id "'+ c+'" should be of type: <script type="'+(b+'" id="'+c+'">'))
+	}
+	function D(a){
+		const b=document.getElementById(a);
+		y(b,'Missing shader source: <script type="x-shader/x-fragment" id="'+ (a+'">'));
+		B(b,"x-shader/x-fragment",a);
+		return b.text
+	}
+	function E(a){
+		a+="Vertex";
+const b=document.getElementById(a);
+return b?(B(b,"x-shader/x-vertex",a),b.text):"attribute vec2 V;void main(){gl_Position=vec4(V,0,1);}"
+}
+function F(a,b){
+"loading"!==document.readyState?b():window.addEventListener(a,b)
+}
+class G{constructor(a,b,c,d){
+	this.g=c;
+	const l=a.gl;
+	this.h=()=>{for(const f of d)f.u(l, f.location,b)};
+		this.i=()=>{
+			var f=c.v,h=a.gl; 
+			h.bindBuffer(h.ARRAY_BUFFER,a.j);
+			h.enableVertexAttribArray(f);
+			h.vertexAttribPointer(f,2,h.FLOAT,!1,0,0);h.drawArrays(h.TRIANGLE_STRIP,0,4);h.disableVertexAttribArray(f);
+			h.bindBuffer(h.ARRAY_BUFFER,null);
+			f=a.gl;
+			for(h=0;h<a.g;h++)f.activeTexture(f.TEXTURE0+h),f.bindTexture(f.TEXTURE_2D,null);a.g=0
+		}
+	}
+}
+function H(a){
+	var b={antialias:!1,depth:!1,alpha:!1};
+	try{return new I(a,b)}
+	catch(c){throw new shaderWebBackground.GlError(c.message);}
+}
+function J(a,b,c,d,l,f){
+	function h(e,m,n){
+		try{{
+			var k=p;const q=k.gl,P=K(k,e,q.VERTEX_SHADER,m),Q=K(k,e,q.FRAGMENT_SHADER,n),v=q.createProgram();q.attachShader(v,P);q.attachShader(v,Q);q.linkProgram(v);var r=v
+			} return r }
+		catch(q){throw new shaderWebBackground.ConfigError(q.message);}
+	}
+	const p=H(a),w=[],g={
+		gl:p.gl,
+		canvas:a,
+		width:0,
+		height:0,
+		cssPixelRatio:0,
+		cssWidth:0,
+		cssHeight:0,
+		isOverShader:(e,m)=>{
+			const n=a.getBoundingClientRect();
+			return e>=n.left&&e<=n.right&&m>=n.top&&m<=n.bottom
+			},
+		toShaderX:e=>(e-a.getBoundingClientRect().left)*g.cssPixelRatio+.5,
+		toShaderY:e=>a.height-(e-a.getBoundingClientRect().top)*g.cssPixelRatio-.5,
+		s:()=>g.cssWidth!==a.clientWidth||g.cssHeight!==a.clientHeight?(g.resize(),!0):!1,
+		resize:()=>{
+			const e=window.devicePixelRatio||1,m=a.clientWidth,n=a.clientHeight,k=Math.floor(m*e),r=Math.floor(n*e);
+			a.width=k;
+			a.height=r;
+			g.width=k;
+			g.height=r;
+			g.cssPixelRatio=e;
+			g.cssWidth=m;
+			g.cssHeight=n;
+			p.gl.viewport(0,0,p.canvas.width,p.canvas.height);
+			for(const q of w)q.g.l(k,r)
+		},
+		texture:(e,m)=>{
+			{
+				var n=p;
+				const k=n.gl;
+				m=m instanceof L?m.g:m;
+				k.activeTexture(k.TEXTURE0+n.g);
+				k.bindTexture(k.TEXTURE_2D,m);
+				k.uniform1i(e,n.g++)
+			}
+		},
+		buffers:{
+			
+		},
+		initHalfFloatRGBATexture:(e,m)=>{ p.h.g(e,m) }
+	},
+	R=Object.keys(b).length-1;
+	let S=0;
+	for(const e in b){
+		if(S++<R){
+			const k=b[e].texture||t;
+			g.buffers[e]=M(
+				p,()=>{
+					k(p.gl,g)
+					}
+				)
+		}
+		const m=N(p,h(e,E(e),D(e)),g.buffers[e]),n=b[e].uniforms||{  };
+		var u=Object.keys(n);
+		for(const k of m.m)y(n[k.name],'No configuration for uniform "'+k.name+'" defined in shader "'+e+'"'),u=u.filter(r=>r!==k.name);
+		0!==u.length&&console.warn('Extra uniforms configured for shader "'+e+'", which are not present in the shader code - might have been removed by GLSL compiler if not used: '+u.join(", "));
+		u=m.m.map(k=>({
+			location:k.location,u:n[k.name]
+		}));
+		w.push(new G(p,g,m,u))
+	}const C=()=>{
+		g.s()&&d&&d(g.width,g.height,g);
+		l&&l(g);
+		for(const e of w)e.g.i(e.h,e.i);
+		f&&f(g);
+		requestAnimationFrame(C)
+	};
+	F("load",()=>{
+		g.resize();
+		c&&c(g);
+		d&&d(g.width,g.height,g);
+		requestAnimationFrame(C)
+	});
+return g
+}
+shaderWebBackground.Error=class extends Error{
+	constructor(a){
+		super(a);
+		this.name="shaderWebBackground.Error"
+	}
+};
+shaderWebBackground.ConfigError=class extends shaderWebBackground.Error{
+	constructor(a){
+		super(a);
+		this.name="shaderWebBackground.ConfigError"
+	}
+};
+shaderWebBackground.GlError=class extends shaderWebBackground.Error{
+	constructor(a){
+		super(a);
+		this.name="shaderWebBackground.GlError"
+	}
+};
+shaderWebBackground.shade=function(a){
+	y(a,"Missing config argument");
+	const b=a.canvas?z(a.canvas):A();
+	y(a.shaders,"No shaders specified in config");
+	try{
+		const c=J(b,a.shaders,a.onInit,a.onResize,a.onBeforeFrame,a.onAfterFrame);
+		a.canvas||F("DOMContentLoaded",()=>{
+			document.body.appendChild(b)
+		});
+		return c
+	}catch(c){
+		(a.onError||x)(c,b)
+	}
+};
+const O=[-1,1,1,1,-1,-1,1,-1];
+function T(a,b){
+	return a.j(a.gl.getExtension(b),b+" extension is not supported")
+}
+class U{
+	constructor(a,b){
+	this.gl=a;
+	this.j=b
+	}g(){
+		
+	}
+}
+class V extends U{
+	constructor(a,b){
+		super(a,b);
+		this.h=T(this,"OES_texture_half_float");
+		T(this,"OES_texture_half_float_linear")
+	}
+	g(a,b){
+		const c=this.gl;
+		c.texImage2D(c.TEXTURE_2D,0,c.RGBA,a,b,0,c.RGBA,this.h.HALF_FLOAT_OES,null)
+	}
+}
+class W extends U{
+	constructor(a,b){
+		super(a,b);
+		T(this,"EXT_color_buffer_float");
+		this.gl.getExtension("OES_texture_float_linear")
+	}g(a,b){
+		const c=this.gl;
+		c.texImage2D(c.TEXTURE_2D,0,c.RGBA16F,a,b,0,c.RGBA,c.HALF_FLOAT,null)
+	}
+}
+function X(a){
+	a=a.split(/\r?\n/);
+	const b=a.length.toString().length;
+	var c=[];
+	a.forEach((d,l)=>{
+		l=(l+1).toString();
+		l=l.length>=b?l:" ".repeat(b-l.length)+l;
+		c.push(l+": "+d+"\n")
+	});
+	return c.join("")
+}
+function M(a,b){
+	return new L(   a.gl,()=>{  b(a.gl)  }   )
+}
+function N(a,b,c){
+	const d=a.gl;
+	a=[];
+	const l=d.getProgramParameter(b,d.ACTIVE_UNIFORMS);
+	for(let f=0;
+	f<l;
+	f++){
+		const h=d.getActiveUniform(b,f);
+		a.push({
+			name:h.name,location:d.getUniformLocation(b,h.name)
+		})
+	}
+	return{
+		v:d.getAttribLocation(b,"V"),m:a,l:c?(f,h)=>c.l(f,h):()=>{
+			
+		},i:(f,h)=>{
+			d.useProgram(b);
+		f();
+		c?(f=c.g,c.g=c.h,c.h=f,c.i(h)):h()
+		}
+	}
+}
+function K(a,b,c,d){
+	a=a.gl;
+	c=a.createShader(c);
+	a.shaderSource(c,d);
+	a.compileShader(c);
+	if(!a.getShaderParameter(c,a.COMPILE_STATUS)){
+		const l=String(a.getShaderInfoLog(c));
+		a.deleteShader(c);
+		b="Cannot compile shader - "+b+": "+l;
+		console.log(b);
+		console.log(X(d));
+		throw Error(b);
+	}
+	return c
+}
+class I{
+	constructor(a,b){
+	this.canvas=a;
+	const c=(l,f)=>{
+		if(!l)throw Error(f);
+		return l
+	};
+	let d=a.getContext("webgl2",b);
+	if(d)this.h=new W(d,c);
+	else if(d=a.getContext("webgl",b))this.h=new V(d,c);
+	c(d,"webgl context not supported on supplied canvas element: "+a);
+	this.gl=d;
+	a=d.createBuffer();
+	d.bindBuffer(d.ARRAY_BUFFER,a);
+	d.bufferData(d.ARRAY_BUFFER,new Float32Array(O),d.STATIC_DRAW);
+	d.bindBuffer(d.ARRAY_BUFFER,null);
+	this.j=a;
+	this.buffers={ };
+	this.g=0
+	}
+}
+function Y(a){
+	const b=a.gl,c=b.createTexture();
+	b.bindTexture(b.TEXTURE_2D,c);
+	a.o(b);
+	b.bindTexture(b.TEXTURE_2D,null);
+	return c
+}
+class L{
+	constructor(a,b){
+		this.j=a.createFramebuffer();
+		this.gl=a;
+		this.o=b;
+		this.g=this.h=null
+	}
+	l(){
+		this.h&&this.gl.deleteTexture(this.h);
+		this.g&&this.gl.deleteTexture(this.g);
+		this.h=Y(this);
+		this.g=Y(this)
+	}
+	i(a){
+		const b=this.gl;
+		b.bindFramebuffer(b.FRAMEBUFFER,this.j);
+		b.framebufferTexture2D(b.FRAMEBUFFER,b.COLOR_ATTACHMENT0,b.TEXTURE_2D,this.g,0);
+		a();
+		b.framebufferTexture2D(b.FRAMEBUFFER,b.COLOR_ATTACHMENT0,b.TEXTURE_2D,null,0);
+		b.bindFramebuffer(b.FRAMEBUFFER,null)
+	}
+};
+
+})()
+//# sourceMappingURL=dist/shader-web-background.min.js.map
+  </script>
+  
+  
+  
+  
+  
+  <script type="x-shader/x-fragment" id="image">
+  #version 100
+    precision mediump float;
+
+    uniform float iTime;
+uniform float time;
+float fade;
+float fadeTo;
+uniform vec2 mouse;
+uniform vec2 resolution;
+#define PI 3.1415926538
+
+
+//simple linear interpolation between two floats
+float lerpf(float fA, float fB, float lp){
+  return (fA * (1.0 - lp)) + fB * lp;
+}
+
+//linear interpolation from vecA to vecB to the degree of lp. Supports lp<0 and lp>1
+vec4 lerpv(vec4 vecA, vec4 vecB, float lp) {
+  return (vecA * (1.0 - lp)) + vecB * lp;
+}
+
+//Converts a value into a sinusoid which is 0 at inp=0 and 1 at inp =1
+float cosy(float inp) {
+  return (cos(inp * PI) * -0.5) + 0.5;
+}
+
+//Like cosy, but rounded
+float check(float inp){
+  return ceil(cos(inp * PI * -1.0));
+}
+
+float dotted(float from, float to, vec2 pos, float rateX, float rateY, float rowShift){
+  //cos(pos.x * PI *2) would be 1 complete cycle of verical bars
+  vec2 cycle = pos * 2.0 * PI;
+  //cos(cycle.x * rateX) would make rateX vertical bars
+  cycle *= vec2(rateX, rateY);
+  // an oscillating 0 or 1 offset woould be ceil(cos(cycle.y)) * PI
+  float offseX = ceil(cos(-cycle.y) * 0.95) * PI * rowShift;
+  //calculate based on pos.x, offset 0 or 1 based on pos.y
+  float checkX = cos(cycle.x + offseX) * 0.95;
+  return (from * (1.0 - checkX)) + (to * checkX);
+}
+//uses pos.x and .y to provide a 0 or 1 in a checkerboard with period rateX and rateY
+float checker(float from, float to, vec2 pos, float rateX, float rateY, float rowShift){
+  //cos(pos.x * PI *2) would be 1 complete cycle of verical bars
+  vec2 cycle = pos * 2.0 * PI;
+  //cos(cycle.x * rateX) would make rateX vertical bars
+  cycle *= vec2(rateX, rateY);
+  // an oscillating 0 or 1 offset woould be ceil(cos(cycle.y)) * PI
+  float offseX = ceil(cos(-cycle.y) * 0.95) * PI * rowShift;
+  //calculate based on pos.x, offset 0 or 1 based on pos.y
+  float checkX = ceil(cos(cycle.x + offseX) * 0.95);
+  return (from * (1.0 - checkX)) + (to * checkX);
+}
+//an accidental dizzying thing based on checker
+  //cos(pos.x * PI *2) would be 1 complete cycle of verical bars
+  float warped(float from, float to, vec2 pos, float rateX, float rateY, float warp){
+  vec2 cycle = pos * 2.0 * PI;
+  //cos(cycle.x * rateX) would make rateX vertical bars
+  cycle *= vec2(rateX, rateY);
+  // an oscillating 0 or 1 offset woould be ceil(cos(cycle.y)) * PI
+  float offseX = cos(-cycle.y) * PI * warp;
+  //calculate based on pos.x, offset 0 or 1 based on pos.y
+  float checkX = cos(cycle.x + offseX) * 0.99;
+  return (from * (1.0 - checkX)) + (to * checkX);
+}
+
+
+  //sinusoidally oscillates between `from` and `to` at the rate of `rate` per second and with a cycle offset of `offset`
+float custy(float from, float to, float inp, float rate, float offset)
+{
+  return (cos((inp * PI * rate) + offset) * -0.5) + 0.5;
+}
+
+
+//fisheye. center is inverse zoom of center (0..1). Outerscale is the scale of the outer range of the canvas
+vec2 fisheye(vec2 pos, float center, float outerScale){
+  vec2 scaled = pos * vec2(outerScale, outerScale);
+  vec2 magniPos = scaled * scaled * scaled;
+  return (scaled * center) + (magniPos * outerScale * (1.0 - center));
+}
+
+
+//just shorthand for time * scale
+float t(float scale){
+  return time * scale;
+}
+
+//shorthand for cos(time * timescale) * maxScale
+float ct(float timeScale, float maxScale){
+  return cos(time * timeScale) * maxScale;
+}
+//just shorthand for a vec4 of all the same color and 1.0
+vec4 vec4x(float inp){
+  return vec4(inp,inp,inp,1.0);
+}
+
+void main() {
+	
+vec2 pos = (gl_FragCoord.xy / resolution.xy);
+vec2 cpos = pos - vec2(0.5, 0.5); //center-based position
+vec2 swirlpos = cpos + vec2(ct(0.091, 0.3),  ct(0.072, 0.3)); //swirling around the center
+vec2 fishpos = fisheye(swirlpos, 0.45+ ct(0.0814, 0.25), 1.8);
+
+float redMax = ct(0.56, 0.20);
+float redMin = 0.05 + ct(0.257, 0.05);
+float redRate = 10.0 + ct(0.01258, 8.0);
+float red = dotted(redMin, redMax, fishpos, redRate, 20.0, ct(0.1259, 2.0));
+
+float grnRate = 50.0 + ct(0.0751, 79.0);
+float grnMin = 0.05 + ct(0.252, 0.05);
+float grnMax = ct(0.253, 0.15);
+float grn = dotted(grnMin, grnMax, fishpos, grnRate, 20.0, ct(0.5, 10.0));
+
+float bluRate = 30.0 + ct(0.054, 29.0);
+float bluMin = 0.1 + ct(0.257, 0.15);
+float bluMax = ct(0.059, 0.75);
+float blu = dotted(bluMin, bluMax, fishpos, bluRate, 20.0, ct(0.05, 2.0));
+blu = lerpf(blu, blu*blu, cosy(time* 0.2));
+
+  vec4 pass1 = vec4(red,grn,blu, 1.0);
+    //gl_FragColor = lerp(passwX, passwY, 0.5);
+    float pass2Color = checker(0.0, 0.5, swirlpos, 20.0, 20.0 + cos(time * 0.15) * 19.0, 20.0 + (cos(time* 0.1) * 20.0));
+    float halfcol = pass2Color * 0.5;
+    float halfred = halfcol * cos(time * 0.211 * cosy(cpos.y * sin(time * 0.153) * 1.248));
+    float halfgrn = halfcol * cos(time * 0.142 * cosy(cpos.y * sin(time * 0.163) * 1.165));
+    float halfblu = halfcol * cosy(time * 0.128);
+    vec4 pass2 = vec4(halfcol + halfred, halfcol + halfgrn, halfcol + halfblu, 1.0);
+  float pass3Color = warped(0.0, 0.5, swirlpos, 20.0, 20.0 + cos(time * 0.15) * 19.0, 20.0 + (cos(time* 0.19) * 20.0));
+  vec4 pass3 = vec4x(pass3Color);
+  vec4 lerp1 = lerpv(pass1, pass2, (cosy(time * 0.12) * 0.2) + (cosy(time * 0.17) * 0.4));
+  vec4 lerp2 = lerpv(lerp1, pass3, (cosy(time * 0.18) * 0.03) + (cosy(time * 0.09) * 0.03));
+    gl_FragColor = lerp2;
+    }
+  </script>
+
+
+
+<script>
+    shaderWebBackground.shade({
+      shaders: {
+        image: {
+          uniforms: {
+            time: (gl, loc) => gl.uniform1f(loc, performance.now() / 1000),
+			resolution: (gl, loc) => {
+				const canvas = gl.canvas; // Assuming the canvas element
+				gl.uniform2f(loc, canvas.width, canvas.height);
+			}
+			
+          }
+        }
+      }
+    });
+  </script>
+  <style>
+    .shader-web-background-fallback {
+      background-position: center;
+      background-size: cover;
+      background-attachment: fixed;
+    }
+    div {
+	position:relative;
+      height:80%;
+      width:80%;
+      background-color: black;
+          text-align: center;
+      border: 3px solid white;
+      padding: 20px;
+      margin: 0px;
+      opacity: 0.8;
+	  position: fixed;
+	  top: 50%;
+	  left: 50%;
+	  transform: translate(-50%, -50%);
+}
+    header {
+      height: 100vh;
+    }
+    html {
+      box-sizing: border-box;
+      background: black;
+      font-size: 1.7vmin;
+      font-family: sans-serif;
+      scroll-behavior: smooth;
+      line-height: 2em;
+    }
+    *, *:before, *:after {
+      box-sizing: inherit;
+    }
+    body, h1, h2, p, ul, blockquote {
+      color: white;
+      overflow-x: hidden;
+      overflow-y: hidden;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    p, ul {
+      margin-top: .618rem;
+      margin-bottom: .618rem;
+    }
+  </style>
+</html>
