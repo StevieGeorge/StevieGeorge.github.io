@@ -11,10 +11,11 @@
 </head>
 <body>
 <div>
- Frequencies<br/>
+ Warped<br/>
 <br/><br/>
 More shaders:<br/><br/>
 <a href ="./index.html">[Home]</a>
+<a href ="./Frequencies.html">[Frequencies]</a>
 <a href ="./Fabrics.html">[Fabrics]</a>
   </div>
 </body>
@@ -364,7 +365,7 @@ class L{
       float distance = length(st);
       vec2 imageSrcUv = vec2(
         mod(
-          ((angle + PI) / PI / 2.)
+          ((angle + PI + (cos(time) * PI) / PI / 2.)
             + (iTime * iRotationSpeed),
           1.
         ),
