@@ -363,13 +363,15 @@ class L{
 	vec2 pos = gl_FragCoord.xy / iResolution.xy;
 	vec2 cpos = pos - vec2(0.5,0.5);
 	float cDist = sqrt((pos.x*pos.x) + (pos.y*pos.y));
+	float oppDist = 1.0 - cDist;
+	float oscRot = cos(iTime * 0.03) * iRotationSpeed;
       vec2 st = (2. * gl_FragCoord.xy - iResolution) / iMinDimension;
       float angle = atan(st.x, st.y);
       float distance = length(st);
       vec2 imageSrcUv = vec2(
         mod(
           ((angle + PI) / PI / 2.)
-            +  (cos(cDist * iTime) * (iTime * iRotationSpeed)),
+            +  (cos(oppDist * iTime) * (iTime * oscRot)),
           1.
         ),
         distance
