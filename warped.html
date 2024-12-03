@@ -360,13 +360,16 @@ class L{
     const float PI = 3.14159265359;
 
     void main() {
+	vec2 pos = gl_FragCoord.xy / iResolution.xy;
+	vec2 cpos = pos - vec2(0.5,0.5);
+	float cDist = sqrt((pos.x*pos.x) + (pos.y*pos.y));
       vec2 st = (2. * gl_FragCoord.xy - iResolution) / iMinDimension;
       float angle = atan(st.x, st.y);
       float distance = length(st);
       vec2 imageSrcUv = vec2(
         mod(
-          ((angle + PI + (cos(time) * PI) / PI / 2.)
-            + (iTime * iRotationSpeed),
+          ((angle + PI) / PI / 2.)
+            +  (cos(cDist * iTime) * (iTime * iRotationSpeed)),
           1.
         ),
         distance
