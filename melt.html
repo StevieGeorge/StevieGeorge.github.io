@@ -11,13 +11,14 @@
 </head>
 <body>
 <div>
- Fabrics<br/>
-Written live for Jam in Lyon.
+ Melt<br/>
+ The base image is cinema Aubert Palace in 1922, illuminated by Fernand Jacopozzi.
 <br/><br/>
 More shaders:<br/><br/>
-<a href ="./index.html">[Home]</a>
-<a href ="./Frequencies.html">[Frequencies]</a>
-<a href ="./Warped.html">[Warped]</a>
+<a href ="./index.html">[home]</a>
+<a href ="./frequency.html">[frequency]</a>
+<a href ="./traffic.html">[traffic]</a>
+<a href ="./fabric.html">[fabric]</a>
   </div>
 </body>
 <script>
@@ -347,109 +348,79 @@ class L{
 //# sourceMappingURL=dist/shader-web-background.min.js.map
   </script>
   
+
   <script type="x-shader/x-fragment" id="image">
+    precision highp float;
 
-precision mediump float;
-uniform float time;
-float fade;
-float fadeTo;
-uniform vec2 mouse;
-uniform vec2 resolution;
-#define PI 3.1415926538
+    uniform vec2  iResolution;
+    uniform float iMinDimension;
+    uniform float iTime;
+    uniform float iRotationSpeed;
+    uniform float imageSmoothedEdge;
+    uniform sampler2D mySourceImage;
 
-vec4 lerp(vec4 vecA, vec4 vecB, float lp)
-{
-  return (vecA * (1.0 - lp)) + vecB * lp;
+    const float PI = 3.14159265359;
 
-}
-
-float cosy(float inp, float offset)
-{
-  return (cos(inp * PI) + 1.0) * -0.5;
-}
-
-/*
-float cosT(float inp, float rate, float offset)
-{
-  return cosy((time + offset) * rate);
-}
-*/
-
-
-void main(void) {
-
-  // fadeTo = 1.0;
-   // fade -= (fade - fadeTo) * 0.1;
-  float inp = PI;
-  float offset = cos((time) * 0.06);
-  float rate = 0.5;
-  float cosy = (cos(inp * PI) + 1.0) * -0.5;
-  float cosT =  cos((time + offset) * rate);
-  float cosT2 =  cos((time + offset) * 0.21);
-  vec2 position = (gl_FragCoord.xy / resolution.xy);
-  vec2 cpos = position - vec2(0.5, 0.5);
-  vec2 swirlpos = cpos + vec2(sin(time * 0.352) * 0.3,  cos(time * 0.253) * 0.3 );
-
-  float color = 0.0;
-  float cosPosY =  swirlpos.x * 0.2 + (swirlpos.x * 0.6 * (cos((time + offset) * 10.0)));
-  float cosPosX =   swirlpos.x * 0.2 + (swirlpos.x * 0.6 * (cos((time + offset) * 0.11)));
-  /*
-  color += sin(swirlpos.x * cos(time / 2.0) * 20.0) + cos(swirlpos.y * cos(time / 15.0) * 10.0);
-  color += sin(cosPosY * sin( time / 10.0) * 40.0) + cos(swirlpos.x * sin(time / 25.0) * 10.0);
-  color += sin(cosPosX * sin( time / 5.0) * 10.0) + sin(swirlpos.y * sin(time / 35.0) * 80.0);
-  color *= sin(time / 10.0) * 0.5;
-*/
-
-  //color = cosf(time) * 1.0;
-  //pass2
-  float gridResX = 10.0 + cosT * 500.0;
-  float gridResY = 10.0 + cosT * 350.0;
-
-   float colorGrid = 1.0;
-   float colorBg = 0.0;
-   float colh = floor(sin((cosT * (-gridResY * 0.5)) + ((position.y * gridResY)) * colorGrid * 1.2));
-   float colv = floor(sin((cosT * (-gridResX * 0.5)) + ((position.x * gridResX)) * colorGrid * 1.2));
-   float col2 = colv + colh;
-  //
-
-
-//flashing limiter
-float flashCycle = (cos((time + offset) * (3.0001 + cosy)) * 2.000001) + 2.0;
-float flash = floor(abs(flashCycle));
-float fadeFlash = 1.0;
-vec4 colFlash = vec4(cosT, floor(cosT2 * 1.4), ceil(cos(time * 0.13)), 1.0) * cosT2 * 0.75;
-
-//
-fade = 0.2 + (cosT * 0.6);
-vec4 pass1 =  vec4(vec3(cosy, color * 0.5, sin(color + time / 3.0) * 0.25), 1.0);
-vec4 pass2 = vec4(col2, col2, col2, 1.0);
-vec4 pass2b = vec4(0.0, 0.15, 0.05, 0.0);
-//fade = fadFlash;
-vec4 blend = (pass1 * (1.0 - fade)) + ( pass2 * fade);
-float blendy = floor(fadeFlash + cos(time * 1.05) + 0.99);
-vec4 blend2 = (colFlash * (1.0 - fadeFlash)) + ( blend * fadeFlash);
-  // gl_FragColor = vec4(vec3(cosy, color * 0.5, sin(color + time / 3.0) * 0.25), 1.0);
-vec4 blend3 = vec4(blend2.x * ceil(sin(time + 0.0) * 0.2), blend2.y * ceil(sin(time + (PI * 0.667)) * 0.2),  blend2.z * ceil(sin(time + (PI * 1.333)) * 0.2), 1.0);
-  gl_FragColor = blend3;
-
-}
-
-
+    void main() {
+	vec2 pos = gl_FragCoord.xy / iResolution.xy;
+	vec2 cpos = pos - vec2(0.5,0.5);
+	float cDist = sqrt((pos.x*pos.x) + (pos.y*pos.y));
+	float oppDist = 1.0 - cDist;
+	float oscScale = 5.0 + (sin(iTime * 0.08) * 20.0);
+	float oscRot = cos(iTime * 0.03) * iRotationSpeed;
+      vec2 st = (2. * gl_FragCoord.xy - iResolution) / iMinDimension;
+      float angle = atan(st.x, st.y);
+      float distance = length(st);
+      vec2 imageSrcUv = vec2(
+        mod(
+          ((angle + PI) / PI / 2.)
+            +  (cos(oppDist * iTime) * (oscScale * oscRot)),
+          1.
+        ),
+        distance
+      );
+      vec4 imageSrcColor = texture2D(mySourceImage, imageSrcUv);
+      gl_FragColor = imageSrcColor * smoothstep(1., imageSmoothedEdge, distance);
+    }
   </script>
+  <script>
+    const loadImage = (src) => new Promise((resolve, reject) => {
+      let img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => {
+        reject(new Error("Failed to load image from: " + src));
+      };
+      img.src = src;
+    });
 
-
-
-<script>
     shaderWebBackground.shade({
+      onInit: (ctx) => {
+        loadImage("facade1922.jpg")
+          .then(image => {
+            const gl = ctx.gl;
+            const texture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+            gl.bindTexture(gl.TEXTURE_2D, null);
+            ctx.mySourceImage = texture;
+          });
+      },
+      onResize: (width, height, ctx) => {
+        ctx.minDimension = Math.min(width, height);
+      },
       shaders: {
         image: {
           uniforms: {
-            time: (gl, loc) => gl.uniform1f(loc, performance.now() / 1000),
-			resolution: (gl, loc) => {
-				const canvas = gl.canvas; // Assuming the canvas element
-				gl.uniform2f(loc, canvas.width, canvas.height);
-			}
-			
+            iResolution:      (gl, loc, ctx) => gl.uniform2f(loc, ctx.width, ctx.height),
+            iTime:            (gl, loc, ctx) => gl.uniform1f(loc, performance.now() / 1000),
+            iMinDimension:    (gl, loc, ctx) => gl.uniform1f(loc, ctx.minDimension),
+            iRotationSpeed:   (gl, loc, ctx) => gl.uniform1f(loc, .02),
+            imageSmoothedEdge: (gl, loc, ctx) => gl.uniform1f(loc, 1 - .02),
+            mySourceImage:      (gl, loc, ctx) => ctx.texture(loc, ctx.mySourceImage)
           }
         }
       }

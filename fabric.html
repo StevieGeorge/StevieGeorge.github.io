@@ -11,17 +11,14 @@
 </head>
 <body>
 <div>
- Hello, I'm stevie.<br/>
-
-This is my collection of shader art.<br/><br/>
-The code for projecting a shader on the background was created by Kazik Pogoda and shared <a href="https://github.com/xemantic/shader-web-background">here</a>. <br/><br/>
-Otherwise, all other imagery and effects were conceived and written by me.<br/><br/>
-Now they're yours, too! These are static pages, and all the code for every shader is plaintext in the html source.<br/><br/>
+ Fabrics<br/>
+Written live for Jam in Lyon.
+<br/><br/>
 More shaders:<br/><br/>
+<a href ="./index.html">[home]</a>
 <a href ="./melt.html">[melt]</a>
 <a href ="./frequency.html">[frequency]</a>
 <a href ="./traffic.html">[traffic]</a>
-<a href ="./fabric.html">[fabric]</a>
   </div>
 </body>
 <script>
@@ -351,15 +348,9 @@ class L{
 //# sourceMappingURL=dist/shader-web-background.min.js.map
   </script>
   
-  
-  
-  
-  
   <script type="x-shader/x-fragment" id="image">
-  #version 100
-    precision mediump float;
 
-    uniform float iTime;
+precision mediump float;
 uniform float time;
 float fade;
 float fadeTo;
@@ -367,130 +358,84 @@ uniform vec2 mouse;
 uniform vec2 resolution;
 #define PI 3.1415926538
 
-
-//simple linear interpolation between two floats
-float lerpf(float fA, float fB, float lp){
-  return (fA * (1.0 - lp)) + fB * lp;
-}
-
-//linear interpolation from vecA to vecB to the degree of lp. Supports lp<0 and lp>1
-vec4 lerpv(vec4 vecA, vec4 vecB, float lp) {
-  return (vecA * (1.0 - lp)) + vecB * lp;
-}
-
-//Converts a value into a sinusoid which is 0 at inp=0 and 1 at inp =1
-float cosy(float inp) {
-  return (cos(inp * PI) * -0.5) + 0.5;
-}
-
-//Like cosy, but rounded
-float check(float inp){
-  return ceil(cos(inp * PI * -1.0));
-}
-
-float dotted(float from, float to, vec2 pos, float rateX, float rateY, float rowShift){
-  //cos(pos.x * PI *2) would be 1 complete cycle of verical bars
-  vec2 cycle = pos * 2.0 * PI;
-  //cos(cycle.x * rateX) would make rateX vertical bars
-  cycle *= vec2(rateX, rateY);
-  // an oscillating 0 or 1 offset woould be ceil(cos(cycle.y)) * PI
-  float offseX = ceil(cos(-cycle.y) * 0.95) * PI * rowShift;
-  //calculate based on pos.x, offset 0 or 1 based on pos.y
-  float checkX = cos(cycle.x + offseX) * 0.95;
-  return (from * (1.0 - checkX)) + (to * checkX);
-}
-//uses pos.x and .y to provide a 0 or 1 in a checkerboard with period rateX and rateY
-float checker(float from, float to, vec2 pos, float rateX, float rateY, float rowShift){
-  //cos(pos.x * PI *2) would be 1 complete cycle of verical bars
-  vec2 cycle = pos * 2.0 * PI;
-  //cos(cycle.x * rateX) would make rateX vertical bars
-  cycle *= vec2(rateX, rateY);
-  // an oscillating 0 or 1 offset woould be ceil(cos(cycle.y)) * PI
-  float offseX = ceil(cos(-cycle.y) * 0.95) * PI * rowShift;
-  //calculate based on pos.x, offset 0 or 1 based on pos.y
-  float checkX = ceil(cos(cycle.x + offseX) * 0.95);
-  return (from * (1.0 - checkX)) + (to * checkX);
-}
-//an accidental dizzying thing based on checker
-  //cos(pos.x * PI *2) would be 1 complete cycle of verical bars
-  float warped(float from, float to, vec2 pos, float rateX, float rateY, float warp){
-  vec2 cycle = pos * 2.0 * PI;
-  //cos(cycle.x * rateX) would make rateX vertical bars
-  cycle *= vec2(rateX, rateY);
-  // an oscillating 0 or 1 offset woould be ceil(cos(cycle.y)) * PI
-  float offseX = cos(-cycle.y) * PI * warp;
-  //calculate based on pos.x, offset 0 or 1 based on pos.y
-  float checkX = cos(cycle.x + offseX) * 0.99;
-  return (from * (1.0 - checkX)) + (to * checkX);
-}
-
-
-  //sinusoidally oscillates between `from` and `to` at the rate of `rate` per second and with a cycle offset of `offset`
-float custy(float from, float to, float inp, float rate, float offset)
+vec4 lerp(vec4 vecA, vec4 vecB, float lp)
 {
-  return (cos((inp * PI * rate) + offset) * -0.5) + 0.5;
+  return (vecA * (1.0 - lp)) + vecB * lp;
+
+}
+
+float cosy(float inp, float offset)
+{
+  return (cos(inp * PI) + 1.0) * -0.5;
+}
+
+/*
+float cosT(float inp, float rate, float offset)
+{
+  return cosy((time + offset) * rate);
+}
+*/
+
+
+void main(void) {
+
+  // fadeTo = 1.0;
+   // fade -= (fade - fadeTo) * 0.1;
+  float inp = PI;
+  float offset = cos((time) * 0.06);
+  float rate = 0.5;
+  float cosy = (cos(inp * PI) + 1.0) * -0.5;
+  float cosT =  cos((time + offset) * rate);
+  float cosT2 =  cos((time + offset) * 0.21);
+  vec2 position = (gl_FragCoord.xy / resolution.xy);
+  vec2 cpos = position - vec2(0.5, 0.5);
+  vec2 swirlpos = cpos + vec2(sin(time * 0.352) * 0.3,  cos(time * 0.253) * 0.3 );
+
+  float color = 0.0;
+  float cosPosY =  swirlpos.x * 0.2 + (swirlpos.x * 0.6 * (cos((time + offset) * 10.0)));
+  float cosPosX =   swirlpos.x * 0.2 + (swirlpos.x * 0.6 * (cos((time + offset) * 0.11)));
+  /*
+  color += sin(swirlpos.x * cos(time / 2.0) * 20.0) + cos(swirlpos.y * cos(time / 15.0) * 10.0);
+  color += sin(cosPosY * sin( time / 10.0) * 40.0) + cos(swirlpos.x * sin(time / 25.0) * 10.0);
+  color += sin(cosPosX * sin( time / 5.0) * 10.0) + sin(swirlpos.y * sin(time / 35.0) * 80.0);
+  color *= sin(time / 10.0) * 0.5;
+*/
+
+  //color = cosf(time) * 1.0;
+  //pass2
+  float gridResX = 10.0 + cosT * 500.0;
+  float gridResY = 10.0 + cosT * 350.0;
+
+   float colorGrid = 1.0;
+   float colorBg = 0.0;
+   float colh = floor(sin((cosT * (-gridResY * 0.5)) + ((position.y * gridResY)) * colorGrid * 1.2));
+   float colv = floor(sin((cosT * (-gridResX * 0.5)) + ((position.x * gridResX)) * colorGrid * 1.2));
+   float col2 = colv + colh;
+  //
+
+
+//flashing limiter
+float flashCycle = (cos((time + offset) * (3.0001 + cosy)) * 2.000001) + 2.0;
+float flash = floor(abs(flashCycle));
+float fadeFlash = 1.0;
+vec4 colFlash = vec4(cosT, floor(cosT2 * 1.4), ceil(cos(time * 0.13)), 1.0) * cosT2 * 0.75;
+
+//
+fade = 0.2 + (cosT * 0.6);
+vec4 pass1 =  vec4(vec3(cosy, color * 0.5, sin(color + time / 3.0) * 0.25), 1.0);
+vec4 pass2 = vec4(col2, col2, col2, 1.0);
+vec4 pass2b = vec4(0.0, 0.15, 0.05, 0.0);
+//fade = fadFlash;
+vec4 blend = (pass1 * (1.0 - fade)) + ( pass2 * fade);
+float blendy = floor(fadeFlash + cos(time * 1.05) + 0.99);
+vec4 blend2 = (colFlash * (1.0 - fadeFlash)) + ( blend * fadeFlash);
+  // gl_FragColor = vec4(vec3(cosy, color * 0.5, sin(color + time / 3.0) * 0.25), 1.0);
+vec4 blend3 = vec4(blend2.x * ceil(sin(time + 0.0) * 0.2), blend2.y * ceil(sin(time + (PI * 0.667)) * 0.2),  blend2.z * ceil(sin(time + (PI * 1.333)) * 0.2), 1.0);
+  gl_FragColor = blend3;
+
 }
 
 
-//fisheye. center is inverse zoom of center (0..1). Outerscale is the scale of the outer range of the canvas
-vec2 fisheye(vec2 pos, float center, float outerScale){
-  vec2 scaled = pos * vec2(outerScale, outerScale);
-  vec2 magniPos = scaled * scaled * scaled;
-  return (scaled * center) + (magniPos * outerScale * (1.0 - center));
-}
-
-
-//just shorthand for time * scale
-float t(float scale){
-  return time * scale;
-}
-
-//shorthand for cos(time * timescale) * maxScale
-float ct(float timeScale, float maxScale){
-  return cos(time * timeScale) * maxScale;
-}
-//just shorthand for a vec4 of all the same color and 1.0
-vec4 vec4x(float inp){
-  return vec4(inp,inp,inp,1.0);
-}
-
-void main() {
-	
-vec2 pos = (gl_FragCoord.xy / resolution.xy);
-vec2 cpos = pos - vec2(0.5, 0.5); //center-based position
-vec2 swirlpos = cpos + vec2(ct(0.091, 0.3),  ct(0.072, 0.3)); //swirling around the center
-vec2 fishpos = fisheye(swirlpos, 0.45+ ct(0.0814, 0.25), 1.8);
-
-float redMax = ct(0.56, 0.20);
-float redMin = 0.05 + ct(0.257, 0.05);
-float redRate = 10.0 + ct(0.01258, 8.0);
-float red = dotted(redMin, redMax, fishpos, redRate, 20.0, ct(0.1259, 2.0));
-
-float grnRate = 50.0 + ct(0.0751, 79.0);
-float grnMin = 0.05 + ct(0.252, 0.05);
-float grnMax = ct(0.253, 0.15);
-float grn = dotted(grnMin, grnMax, fishpos, grnRate, 20.0, ct(0.5, 10.0));
-
-float bluRate = 30.0 + ct(0.054, 29.0);
-float bluMin = 0.1 + ct(0.257, 0.15);
-float bluMax = ct(0.059, 0.75);
-float blu = dotted(bluMin, bluMax, fishpos, bluRate, 20.0, ct(0.05, 2.0));
-blu = lerpf(blu, blu*blu, cosy(time* 0.2));
-
-  vec4 pass1 = vec4(red,grn,blu, 1.0);
-    //gl_FragColor = lerp(passwX, passwY, 0.5);
-    float pass2Color = checker(0.0, 0.5, swirlpos, 20.0, 20.0 + cos(time * 0.15) * 19.0, 20.0 + (cos(time* 0.1) * 20.0));
-    float halfcol = pass2Color * 0.5;
-    float halfred = halfcol * cos(time * 0.211 * cosy(cpos.y * sin(time * 0.153) * 1.248));
-    float halfgrn = halfcol * cos(time * 0.142 * cosy(cpos.y * sin(time * 0.163) * 1.165));
-    float halfblu = halfcol * cosy(time * 0.128);
-    vec4 pass2 = vec4(halfcol + halfred, halfcol + halfgrn, halfcol + halfblu, 1.0);
-  float pass3Color = warped(0.0, 0.5, swirlpos, 20.0, 20.0 + cos(time * 0.15) * 19.0, 20.0 + (cos(time* 0.19) * 20.0));
-  vec4 pass3 = vec4x(pass3Color);
-  vec4 lerp1 = lerpv(pass1, pass2, (cosy(time * 0.12) * 0.2) + (cosy(time * 0.17) * 0.4));
-  vec4 lerp2 = lerpv(lerp1, pass3, (cosy(time * 0.18) * 0.03) + (cosy(time * 0.09) * 0.03));
-    gl_FragColor = lerp2;
-    }
   </script>
 
 
@@ -519,8 +464,8 @@ blu = lerpf(blu, blu*blu, cosy(time* 0.2));
     }
     div {
 	position:relative;
-      height:60%;
-      width:60%;
+      height:30%;
+      width:30%;
       background-color: black;
           text-align: center;
       border: 3px solid white;
