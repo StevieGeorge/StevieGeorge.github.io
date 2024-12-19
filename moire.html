@@ -407,9 +407,6 @@ vec4 image2 = vec4x(grid);
 float lerp12 = sin(pos.x * (5.0 + ct(0.08, 8.)) * (0.5 + ct(0.03, 3.0))) * ct(0.04, 0.9);
 vec4 image12 = lerpv(image1, image2, lerp12);
   gl_FragColor = image12;
-  }
-
-
 }
 
 
