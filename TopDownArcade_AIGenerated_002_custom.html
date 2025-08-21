@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top-Down Arcade RPG</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a2e;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            position: relative;
+            background: #0f3460;
+            border: 4px solid #16213e;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+        }
+
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(45deg, #2d5a27 0%, #4a7c59 50%, #2d5a27 100%);
+            image-rendering: pixelated;
+        }
+
+        .ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #00ff88;
+            font-size: 14px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            z-index: 100;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: #88ccff;
+            font-size: 12px;
+            text-align: right;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        .health-bar {
+            width: 150px;
+            height: 20px;
+            background: #330000;
+            border: 2px solid #666;
+            margin-top: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ff6600);
+            transition: width 0.3s ease;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #ff4444;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 24px;
+            display: none;
+            z-index: 200;
+        }
+
+        .victory {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 100, 0, 0.9);
+            color: #44ff44;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 24px;
+            display: none;
+            z-index: 200;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div class="ui">
+            <div>Health: <span id="healthText">100</span></div>
+            <div class="health-bar">
+                <div class="health-fill" id="healthBar"></div>
+            </div>
+            <div>Score: <span id="scoreText">0</span></div>
+            <div>Level: <span id="levelText">1</span></div>
+        </div>
+        
+        <div class="controls">
+            <div>WASD - Move</div>
+            <div>SPACE - Attack</div>
+            <div>R - Restart</div>
+        </div>
+        
+        <div class="game-over" id="gameOver">
+            <h2>Game Over!</h2>
+            <p>Press R to restart</p>
+        </div>
+        
+        <div class="victory" id="victory">
+            <h2>Victory!</h2>
+            <p>All enemies defeated!</p>
+            <p>Press R to play again</p>
+        </div>
+    </div>
+
+    <script>
+        // Ultra-lightweight JS framework
+        class Component {
+            constructor(canvas, ctx) {
+                this.canvas = canvas;
+                this.ctx = ctx;
+                this.x = 0;
+                this.y = 0;
+                this.width = 32;
+                this.height = 32;
+                this.active = true;
+            }
+
+            update(deltaTime) {}
+            render() {}
+            
+            getBounds() {
+                return {
+                    left: this.x,
+                    right: this.x + this.width,
+                    top: this.y,
+                    bottom: this.y + this.height
+                };
+            }
+            
+            collidesWith(other) {
+                const a = this.getBounds();
+                const b = other.getBounds();
+                return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+            }
+        }
+
+        class Player extends Component {
+            constructor(canvas, ctx) {
+                super(canvas, ctx);
+                this.x = 100;
+                this.y = 100;
+                this.damage = 30;
+                this.speed = 200;
+                this.health = 100;
+                this.maxHealth = 100;
+                this.attackCooldown = 0;
+                this.direction = 'down';
+                this.isAttacking = false;
+                this.attackDuration = 0;
+                this.attackProgress = 0;
+                this.damageStunDuration = 0;
+                this.damageBlinkTimer = 0;
+                this.isStunned = false;
+            }
+
+            update(deltaTime) {
+                if (this.attackCooldown > 0) {
+                    this.attackCooldown -= deltaTime;
+                }
+                
+                if (this.attackDuration > 0) {
+                    this.attackDuration -= deltaTime;
+                    this.attackProgress = 1 - (this.attackDuration / 0.4);
+                    if (this.attackDuration <= 0) {
+                        this.isAttacking = false;
+                        this.attackProgress = 0;
+                    }
+                }
+                
+                if (this.damageStunDuration > 0) {
+                    this.damageStunDuration -= deltaTime;
+                    this.damageBlinkTimer -= deltaTime;
+                    if (this.damageStunDuration <= 0) {
+                        this.isStunned = false;
+                        this.damageBlinkTimer = 0;
+                    }
+                }
+            }
+
+            move(dx, dy, deltaTime) {
+				var speedMulti = 1;
+                if (this.isStunned){
+					speedMulti = 0.5;
+				}
+                
+                const newX = this.x + dx * this.speed * speedMulti * deltaTime;
+                const newY = this.y + dy * this.speed * speedMulti * deltaTime;
+                
+                if (newX >= 0 && newX <= this.canvas.width - this.width) {
+                    this.x = newX;
+                }
+                if (newY >= 0 && newY <= this.canvas.height - this.height) {
+                    this.y = newY;
+                }
+                
+                if (dx > 0) this.direction = 'right';
+                else if (dx < 0) this.direction = 'left';
+                else if (dy > 0) this.direction = 'down';
+                else if (dy < 0) this.direction = 'up';
+            }
+
+            attack() {
+                if (this.attackCooldown <= 0 && !this.isStunned) {
+                    this.isAttacking = true;
+                    this.attackDuration = 0.2;
+                    this.attackProgress = 0;
+                    this.attackCooldown = 0.35;
+                    return true;
+                }
+                return false;
+            }
+
+            takeDamage(amount) {
+                this.health = Math.max(0, this.health - amount);
+                this.damageStunDuration = 0.1;
+                this.damageBlinkTimer = 0.5;
+                this.isStunned = true;
+            }
+
+            render() {
+                const ctx = this.ctx;
+                
+                // Damage blink effect
+                const shouldBlink = this.damageBlinkTimer > 0 && Math.floor(this.damageBlinkTimer * 20) % 2 === 0;
+                
+                // Draw player as a green rectangle with direction indicator
+                ctx.fillStyle = shouldBlink ? '#ff4444' : '#00aa44';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Direction indicator
+                ctx.fillStyle = shouldBlink ? '#aa0000' : '#004422';
+                const centerX = this.x + this.width / 2;
+                const centerY = this.y + this.height / 2;
+                
+                switch (this.direction) {
+                    case 'up':
+                        ctx.fillRect(centerX - 4, this.y, 8, 8);
+                        break;
+                    case 'down':
+                        ctx.fillRect(centerX - 4, this.y + this.height - 8, 8, 8);
+                        break;
+                    case 'left':
+                        ctx.fillRect(this.x, centerY - 4, 8, 8);
+                        break;
+                    case 'right':
+                        ctx.fillRect(this.x + this.width - 8, centerY - 4, 8, 8);
+                        break;
+                }
+                
+                // Animated sword attack
+                if (this.isAttacking) {
+                    this.renderSword(ctx, centerX, centerY);
+                }
+            }
+
+            renderSword(ctx, centerX, centerY) {
+                ctx.save();
+                
+                // Sword properties
+                const swordLength = 50;
+                const swordWidth = 8;
+                const swingAngle = Math.PI / 2; // 90 degree swing
+                
+                // Calculate sword position based on attack progress and direction
+                let baseAngle = 0;
+                let startOffset = -swingAngle;
+                
+                switch (this.direction) {
+                    case 'up': baseAngle = -Math.PI / 2; break;
+                    case 'down': baseAngle = Math.PI / 2; break;
+                    case 'left': baseAngle = Math.PI; break;
+                    case 'right': baseAngle = 0; break;
+                }
+                
+                // Smooth swing animation (starts slow, speeds up, slows down)
+                const easeProgress = 0.5 - 0.5 * Math.cos(this.attackProgress * Math.PI);
+                const currentAngle = baseAngle + startOffset + (swingAngle * easeProgress);
+                
+                // Sword tip position
+                const swordTipX = centerX + Math.cos(currentAngle) * swordLength;
+                const swordTipY = centerY + Math.sin(currentAngle) * swordWidth;
+                
+                // Draw sword
+                ctx.translate(centerX, centerY);
+                ctx.rotate(currentAngle);
+                
+                // Sword blade
+                ctx.fillStyle = '#cccccc';
+                ctx.fillRect(0, -swordWidth / 2, swordLength - 8, swordWidth);
+                
+                // Sword tip
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(swordLength - 8, -swordWidth / 2 + 1, 8, swordWidth - 2);
+                
+                // Sword hilt
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(-8, -swordWidth / 2 - 2, 12, swordWidth + 4);
+                
+                // Trail effect
+                if (this.attackProgress > 0.2) {
+                    ctx.strokeStyle = `rgba(255, 255, 0, ${0.8 - this.attackProgress})`;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(-5, 0);
+                    ctx.lineTo(swordLength, 0);
+                    ctx.stroke();
+                }
+                
+                ctx.restore();
+            }
+
+            getAttackBounds() {
+                if (!this.isAttacking || this.attackProgress < 0.2) return null;
+                
+                const range = 50;
+                let bounds = {
+                    left: this.x - range,
+                    right: this.x + this.width + range,
+                    top: this.y - range,
+                    bottom: this.y + this.height + range
+                };
+                
+                // Directional attack zones
+                switch (this.direction) {
+                    case 'up':
+                        bounds.bottom = this.y + this.height / 2;
+                        break;
+                    case 'down':
+                        bounds.top = this.y + this.height / 2;
+                        break;
+                    case 'left':
+                        bounds.right = this.x + this.width / 2;
+                        break;
+                    case 'right':
+                        bounds.left = this.x + this.width / 2;
+                        break;
+                }
+                
+                return bounds;
+            }
+        }
+
+        class Enemy extends Component {
+            constructor(canvas, ctx, x, y, level) {
+                super(canvas, ctx);
+                this.x = x;
+                this.y = y;
+                this.speed = 50  + (level * 2);
+                this.health = 30 + (level * 5);
+                this.maxHealth = 30 + (level * 5);
+                this.damage = 10 + level;
+				this.invulnerableCooldown = 0;
+				this.invulnerableCooldownMax = 1;
+                this.attackCooldown = 1;
+                this.direction = Math.random() * Math.PI * 2;
+                this.changeDirectionTimer = 0;
+                this.color = `hsl(${Math.random() * 60}, 70%, 50%)`;
+                this.damageStunDuration = 0;
+                this.damageBlinkTimer = 0;
+                this.isStunned = false;
+                this.originalSpeed = this.speed;
+            }
+
+            update(deltaTime, player, level) {
+                // Handle damage effects
+                if (this.damageStunDuration > 0) {
+                    this.damageStunDuration -= deltaTime;
+                    this.damageBlinkTimer -= deltaTime;
+                    if (this.damageStunDuration <= 0) {
+                        this.isStunned = false;
+                        this.damageBlinkTimer = 0;
+                        this.speed = this.originalSpeed + (level * 10);
+                    }
+                }
+				if (this.invulnerableCooldown > 0) {
+					this.invulnerableCooldown -= deltaTime;
+				}
+                
+                if (this.isStunned) return;
+                
+                // Simple AI: move towards player with some randomness
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 50) {
+                    // Move towards player
+                    this.x += (dx / distance) * this.speed * deltaTime;
+                    this.y += (dy / distance) * this.speed * deltaTime;
+                } else {
+                    // Random movement when close
+                    this.changeDirectionTimer -= deltaTime;
+                    if (this.changeDirectionTimer <= 0) {
+                        this.direction = Math.random() * Math.PI * 2;
+                        this.changeDirectionTimer = 1 + Math.random();
+                    }
+                    
+                    this.x += Math.cos(this.direction) * this.speed * 0.5 * deltaTime;
+                    this.y += Math.sin(this.direction) * this.speed * 0.5 * deltaTime;
+                }
+                
+                // Keep in bounds
+                this.x = Math.max(0, Math.min(this.canvas.width - this.width, this.x));
+                this.y = Math.max(0, Math.min(this.canvas.height - this.height, this.y));
+                
+                if (this.attackCooldown > 0) {
+                    this.attackCooldown -= deltaTime;
+                }
+            }
+			
+
+            takeDamage(amount) {
+			
+				if (this.invulnerableCooldown <= 0) {
+					this.invulnerableCooldown = this.invulnerableCooldownMax;
+					this.health -= amount;
+					this.damageStunDuration = 0.1;
+					this.damageBlinkTimer = 0.3;
+					this.isStunned = true;
+					this.speed = this.speed / 2; // Stop moving when stunned
+					}
+					
+				if (this.health <= 0) {
+					this.active = false;
+                }
+            }
+
+            canAttack() {
+                return this.attackCooldown <= 0;
+            }
+
+            attack() {
+                this.attackCooldown = 1.5;
+                return this.damage;
+            }
+
+            render() {
+                const ctx = this.ctx;
+                
+                // Damage blink effect
+                const shouldBlink = this.damageBlinkTimer > 0 && Math.floor(this.damageBlinkTimer * 15) % 2 === 0;
+                
+                // Draw enemy as colored rectangle
+                if (shouldBlink) {
+                    ctx.fillStyle = '#ff6666';
+                } else {
+                    ctx.fillStyle = this.color;
+                }
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Health bar
+                const barWidth = this.width;
+                const barHeight = 4;
+                const healthPercent = this.health / this.maxHealth;
+                
+                ctx.fillStyle = '#660000';
+                ctx.fillRect(this.x, this.y - 8, barWidth, barHeight);
+                
+                ctx.fillStyle = healthPercent > 0.3 ? '#ff0000' : '#ff6666';
+                ctx.fillRect(this.x, this.y - 8, barWidth * healthPercent, barHeight);
+                
+                // Eyes (red when blinking)
+                ctx.fillStyle = shouldBlink ? '#ffaaaa' : '#ffffff';
+                ctx.fillRect(this.x + 6, this.y + 6, 6, 6);
+                ctx.fillRect(this.x + this.width - 12, this.y + 6, 6, 6);
+                
+                ctx.fillStyle = shouldBlink ? '#660000' : '#000000';
+                ctx.fillRect(this.x + 8, this.y + 8, 2, 2);
+                ctx.fillRect(this.x + this.width - 10, this.y + 8, 2, 2);
+                
+                // Stun effect
+                if (this.isStunned) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.fillRect(this.x - 2, this.y - 2, this.width + 4, this.height + 4);
+                    
+                    // Stun stars
+                    const centerX = this.x + this.width / 2;
+                    const centerY = this.y + this.height / 2;
+                    ctx.fillStyle = '#ffff00';
+                    
+                    for (let i = 0; i < 3; i++) {
+                        const angle = (Date.now() / 200 + i * Math.PI * 2 / 3) % (Math.PI * 2);
+                        const starX = centerX + Math.cos(angle) * 20;
+                        const starY = centerY + Math.sin(angle) * 15 - 15;
+                        this.drawStar(ctx, starX, starY, 3);
+                    }
+                }
+            }
+
+            drawStar(ctx, x, y, size) {
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.fillStyle = '#ffff00';
+                
+                // Simple star shape
+                ctx.fillRect(-size/2, -size/2, size, size);
+                ctx.fillRect(-size/4, -size, size/2, size*2);
+                
+                ctx.restore();
+            }
+        }
+
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.keys = {};
+                this.lastTime = 0;
+                this.level = 1;
+                this.score = 0;
+                this.gameState = 'playing'; // playing, gameOver, victory
+                
+                this.init();
+                this.setupEvents();
+                this.gameLoop();
+            }
+
+            init() {
+                this.player = new Player(this.canvas, this.ctx);
+                this.enemies = [];
+                this.spawnEnemies();
+                this.updateUI();
+            }
+
+            spawnEnemies() {
+                const enemyCount = 3 + this.level;
+                for (let i = 0; i < enemyCount; i++) {
+                    let x, y;
+                    do {
+                        x = Math.random() * (this.canvas.width - 32);
+                        y = Math.random() * (this.canvas.height - 32);
+                    } while (Math.sqrt((x - this.player.x) ** 2 + (y - this.player.y) ** 2) < 100);
+                    var spawnedEnemy = new Enemy(this.canvas, this.ctx, x, y, this.level);
+                    this.enemies.push(spawnedEnemy);
+                }
+            }
+
+            setupEvents() {
+                window.addEventListener('keydown', (e) => {
+                    this.keys[e.key.toLowerCase()] = true;
+                    
+                    if (e.key.toLowerCase() === ' ') {
+                        e.preventDefault();
+                        if (this.gameState === 'playing') {
+                            this.player.attack();
+                        }
+                    }
+                    
+                    if (e.key.toLowerCase() === 'r') {
+                        this.restart();
+                    }
+                });
+                
+                window.addEventListener('keyup', (e) => {
+                    this.keys[e.key.toLowerCase()] = false;
+                });
+            }
+
+            update(deltaTime) {
+                if (this.gameState !== 'playing') return;
+                
+                // Player movement
+                let dx = 0, dy = 0;
+                if (this.keys['w']) dy = -1;
+                if (this.keys['s']) dy = 1;
+                if (this.keys['a']) dx = -1;
+                if (this.keys['d']) dx = 1;
+                
+                if (dx !== 0 || dy !== 0) {
+                    this.player.move(dx, dy, deltaTime);
+                }
+                
+                this.player.update(deltaTime);
+                
+                // Update enemies
+                this.enemies.forEach(enemy => {
+                    if (enemy.active) {
+                        enemy.update(deltaTime, this.player, this.level);
+                    }
+                });
+                
+                // Check collisions
+                this.checkCollisions();
+                
+                // Remove inactive enemies
+                this.enemies = this.enemies.filter(enemy => enemy.active);
+                
+                // Check win condition
+                if (this.enemies.length === 0) {
+                    this.levelUp();
+                }
+                
+                // Check game over
+                if (this.player.health <= 0) {
+                    this.gameState = 'gameOver';
+                    document.getElementById('gameOver').style.display = 'block';
+                }
+            }
+
+            checkCollisions() {
+                const attackBounds = this.player.getAttackBounds();
+                
+                this.enemies.forEach(enemy => {
+                    if (!enemy.active) return;
+                    
+                    // Player attack vs enemies
+                    if (attackBounds && this.boundsCollide(attackBounds, enemy.getBounds())) {
+                        enemy.takeDamage(this.player.damage);
+                        if (!enemy.active) {
+                            this.score += 100;
+                        }
+                    }
+                    
+                    // Enemy vs player collision
+                    if (this.player.collidesWith(enemy) && enemy.canAttack()) {
+                        const damage = enemy.attack();
+                        this.player.takeDamage(damage);
+                    }
+                });
+                
+                this.updateUI();
+            }
+
+            boundsCollide(a, b) {
+                return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+            }
+
+            levelUp() {
+                this.level++;
+                this.score += 500;
+                this.player.health = Math.min(this.player.maxHealth, this.player.health + 25);
+                
+                if (this.level > 50) {
+                    this.gameState = 'victory';
+                    document.getElementById('victory').style.display = 'block';
+                } else {
+                    this.spawnEnemies();
+                }
+                
+                this.updateUI();
+            }
+
+            updateUI() {
+                document.getElementById('healthText').textContent = this.player.health;
+                document.getElementById('scoreText').textContent = this.score;
+                document.getElementById('levelText').textContent = this.level;
+                
+                const healthPercent = (this.player.health / this.player.maxHealth) * 100;
+                document.getElementById('healthBar').style.width = healthPercent + '%';
+            }
+
+            render() {
+                // Clear canvas
+                this.ctx.fillStyle = '#2d5a27';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw grass pattern
+                this.ctx.fillStyle = '#1a4a1a';
+                for (let x = 0; x < this.canvas.width; x += 40) {
+                    for (let y = 0; y < this.canvas.height; y += 40) {
+                        if ((x + y) % 80 === 0) {
+                            this.ctx.fillRect(x, y, 20, 20);
+                        }
+                    }
+                }
+                
+                // Render game objects
+                this.enemies.forEach(enemy => {
+                    if (enemy.active) {
+                        enemy.render();
+                    }
+                });
+                
+                this.player.render();
+            }
+
+            restart() {
+                this.gameState = 'playing';
+                this.level = 1;
+                this.score = 0;
+                document.getElementById('gameOver').style.display = 'none';
+                document.getElementById('victory').style.display = 'none';
+                this.init();
+            }
+
+            gameLoop(currentTime = 0) {
+                const deltaTime = (currentTime - this.lastTime) / 1000;
+                this.lastTime = currentTime;
+                
+                this.update(deltaTime);
+                this.render();
+                
+                requestAnimationFrame((time) => this.gameLoop(time));
+            }
+        }
+
+        // Start the game
+        window.addEventListener('load', () => {
+            new Game();
+        });
+    </script>
+</body>
+</html>
