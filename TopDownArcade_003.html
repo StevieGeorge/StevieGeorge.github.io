@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top-Down Arcade RPG</title>
+    <style>
+        /* Reset default browser styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Main body styling with retro game aesthetic */
+        body {
+            background: #1a1a2e; /* Dark blue background */
+            font-family: 'Courier New', monospace; /* Pixelated font */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* Prevent scrollbars */
+        }
+
+        /* Game container with glowing border effect */
+        #gameContainer {
+            position: relative;
+            background: #0f3460;
+            border: 4px solid #16213e;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3); /* Cyan glow */
+        }
+
+        /* Main game canvas with pixelated rendering */
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(45deg, #2d5a27 0%, #4a7c59 50%, #2d5a27 100%);
+            image-rendering: pixelated; /* Keep crisp pixel graphics */
+        }
+
+        /* UI overlay for game stats */
+        .ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #00ff88; /* Bright green text */
+            font-size: 14px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); /* Dark shadow for readability */
+            z-index: 100;
+        }
+
+        /* Control instructions overlay */
+        .controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: #88ccff; /* Light blue text */
+            font-size: 12px;
+            text-align: right;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        /* Health bar container styling */
+        .health-bar {
+            width: 150px;
+            height: 20px;
+            background: #330000; /* Dark red background */
+            border: 2px solid #666;
+            margin-top: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated health bar fill */
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ff6600); /* Red to orange gradient */
+            transition: width 0.3s ease; /* Smooth width transitions */
+        }
+
+        /* Menu screen styling */
+        .menu-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #00ff88;
+            text-align: center;
+            z-index: 150;
+        }
+
+        .menu-title {
+            font-size: 48px;
+            margin-bottom: 40px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+            color: #00ffff;
+        }
+
+        .menu-section {
+            margin: 20px 0;
+        }
+
+        .menu-section h3 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #ffaa00;
+        }
+
+        .level-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .level-btn, .menu-btn {
+            background: linear-gradient(145deg, #2d5a27, #4a7c59);
+            border: 2px solid #00ff88;
+            color: #ffffff;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .level-btn:hover, .menu-btn:hover {
+            background: linear-gradient(145deg, #4a7c59, #2d5a27);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .level-btn.locked {
+            background: #333;
+            border-color: #666;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .level-btn.locked:hover {
+            background: #333;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .menu-instructions {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #88ccff;
+            line-height: 1.5;
+        }
+
+        /* Game over and victory screens */
+        .game-over, .victory {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 24px;
+            display: none;
+            z-index: 200;
+        }
+
+        .game-over {
+            color: #ff4444;
+        }
+
+        .victory {
+            color: #44ff44;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main game container with canvas and UI overlays -->
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <!-- Main Menu Screen -->
+        <div class="menu-screen" id="menuScreen">
+            <h1 class="menu-title">DUNGEON QUEST</h1>
+            
+            <div class="menu-section">
+                <h3>Select Level</h3>
+                <div class="level-buttons" id="levelButtons">
+                    <!-- Level buttons will be generated by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="menu-section">
+                <button class="menu-btn" id="endlessBtn">Endless Mode</button>
+                <button class="menu-btn" id="instructionsBtn">Instructions</button>
+            </div>
+            
+            <div class="menu-instructions">
+                <div>WASD - Move | SPACE - Attack | ESC - Menu</div>
+                <div>Defeat all enemies to advance!</div>
+            </div>
+        </div>
+        
+        <!-- Game statistics UI overlay -->
+        <div class="ui">
+            <div>Health: <span id="healthText">100</span></div>
+            <div class="health-bar">
+                <div class="health-fill" id="healthBar"></div>
+            </div>
+            <div>Score: <span id="scoreText">0</span></div>
+            <div>Level: <span id="levelText">1</span></div>
+        </div>
+        
+        <!-- Control instructions overlay -->
+        <div class="controls">
+            <div>WASD - Move</div>
+            <div>SPACE - Attack</div>
+            <div>ESC - Menu</div>
+        </div>
+        
+        <!-- Game over modal -->
+        <div class="game-over" id="gameOver">
+            <h2>Game Over!</h2>
+            <p>Final Score: <span id="finalScore">0</span></p>
+            <p>Press R to restart or ESC for menu</p>
+        </div>
+        
+        <!-- Victory modal -->
+        <div class="victory" id="victory">
+            <h2>Level Complete!</h2>
+            <p>Score: <span id="levelScore">0</span></p>
+            <p>Press SPACE to continue or ESC for menu</p>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Ultra-lightweight Component-based Game Framework
+         * Base class for all game objects (Player, Enemies, Projectiles, etc.)
+         */
+        class Component {
+            constructor(canvas, ctx) {
+                this.canvas = canvas;  // Reference to game canvas
+                this.ctx = ctx;        // Reference to 2D rendering context
+                this.x = 0;           // X position in pixels
+                this.y = 0;           // Y position in pixels
+                this.width = 32;      // Width of the component in pixels
+                this.height = 32;     // Height of the component in pixels
+                this.active = true;   // Whether this component should be updated/rendered
+            }
+
+            /**
+             * Update component state - override in child classes
+             * @param {number} deltaTime - Time elapsed since last frame in seconds
+             */
+            update(deltaTime) {}
+            
+            /**
+             * Render component to canvas - override in child classes
+             */
+            render() {}
+            
+            /**
+             * Get bounding box for collision detection
+             * @returns {Object} Bounds object with left, right, top, bottom properties
+             */
+            getBounds() {
+                return {
+                    left: this.x,
+                    right: this.x + this.width,
+                    top: this.y,
+                    bottom: this.y + this.height
+                };
+            }
+            
+            /**
+             * Check collision with another component using AABB (Axis-Aligned Bounding Box)
+             * @param {Component} other - Other component to check collision with
+             * @returns {boolean} True if components are colliding
+             */
+            collidesWith(other) {
+                const a = this.getBounds();
+                const b = other.getBounds();
+                return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+            }
+        }
+
+        /**
+         * Projectile Class for ranged attacks
+         * Handles bullet movement and collision
+         */
+        class Projectile extends Component {
+            constructor(canvas, ctx, x, y, targetX, targetY, speed = 300) {
+                super(canvas, ctx);
+                this.x = x;
+                this.y = y;
+                this.width = 8;
+                this.height = 8;
+                this.speed = speed;
+                this.damage = 15;
+                this.lifetime = 3; // Projectile disappears after 3 seconds
+                
+                // Calculate direction vector to target
+                const dx = targetX - x;
+                const dy = targetY - y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                this.velocityX = (dx / distance) * speed;
+                this.velocityY = (dy / distance) * speed;
+            }
+
+            /**
+             * Update projectile position and lifetime
+             * @param {number} deltaTime - Time elapsed since last frame
+             */
+            update(deltaTime) {
+                // Move projectile
+                this.x += this.velocityX * deltaTime;
+                this.y += this.velocityY * deltaTime;
+                
+                // Reduce lifetime
+                this.lifetime -= deltaTime;
+                
+                // Remove if lifetime expired or out of bounds
+                if (this.lifetime <= 0 || 
+                    this.x < -20 || this.x > this.canvas.width + 20 ||
+                    this.y < -20 || this.y > this.canvas.height + 20) {
+                    this.active = false;
+                }
+            }
+
+            /**
+             * Render projectile as a glowing orb
+             */
+            render() {
+                const ctx = this.ctx;
+                
+                // Glow effect
+                ctx.fillStyle = 'rgba(255, 100, 100, 0.3)';
+                ctx.fillRect(this.x - 4, this.y - 4, this.width + 8, this.height + 8);
+                
+                // Main projectile body
+                ctx.fillStyle = '#ff6600';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Bright core
+                ctx.fillStyle = '#ffff00';
+                ctx.fillRect(this.x + 2, this.y + 2, this.width - 4, this.height - 4);
+            }
+        }
+
+        /**
+         * Player Character Class
+         * Handles player movement, combat, health, and damage effects
+         */
+        class Player extends Component {
+            constructor(canvas, ctx) {
+                super(canvas, ctx);
+                
+                // Position and movement
+                this.x = 100;                    // Starting X position
+                this.y = 100;                    // Starting Y position
+                this.speed = 200;                // Movement speed in pixels per second
+                
+                // Health system
+                this.health = 100;               // Current health points
+                this.maxHealth = 100;            // Maximum health points
+                
+                // Combat system
+                this.attackCooldown = 0;         // Time remaining before next attack (seconds)
+                this.direction = 'down';         // Current facing direction
+                this.isAttacking = false;        // Whether currently performing an attack
+                this.attackDuration = 0;         // Time remaining in current attack
+                this.attackProgress = 0;         // Attack animation progress (0-1)
+                
+                // Damage and stun system
+                this.damageStunDuration = 0;     // Time remaining stunned from damage
+                this.damageBlinkTimer = 0;       // Time remaining for damage blink effect
+                this.isStunned = false;          // Whether currently stunned and unable to move
+            }
+
+            /**
+             * Update player state each frame
+             * @param {number} deltaTime - Time elapsed since last frame
+             */
+            update(deltaTime) {
+                // Handle attack cooldown timer
+                if (this.attackCooldown > 0) {
+                    this.attackCooldown -= deltaTime;
+                }
+                
+                // Handle attack animation
+                if (this.attackDuration > 0) {
+                    this.attackDuration -= deltaTime;
+                    // Calculate attack progress for smooth animation (0 to 1)
+                    this.attackProgress = 1 - (this.attackDuration / 0.4);
+                    
+                    // End attack when duration expires
+                    if (this.attackDuration <= 0) {
+                        this.isAttacking = false;
+                        this.attackProgress = 0;
+                    }
+                }
+                
+                // Handle damage stun and blink effects
+                if (this.damageStunDuration > 0) {
+                    this.damageStunDuration -= deltaTime;
+                    this.damageBlinkTimer -= deltaTime;
+                    
+                    // End stun when duration expires
+                    if (this.damageStunDuration <= 0) {
+                        this.isStunned = false;
+                        this.damageBlinkTimer = 0;
+                    }
+                }
+            }
+
+            /**
+             * Move player and update facing direction
+             * @param {number} dx - Horizontal movement direction (-1, 0, or 1)
+             * @param {number} dy - Vertical movement direction (-1, 0, or 1)
+             * @param {number} deltaTime - Time elapsed for movement calculation
+             */
+            move(dx, dy, deltaTime) {
+                // Prevent movement when stunned
+                if (this.isStunned) return;
+                
+                // Calculate new position based on speed and time
+                const newX = this.x + dx * this.speed * deltaTime;
+                const newY = this.y + dy * this.speed * deltaTime;
+                
+                // Keep player within canvas bounds (horizontal)
+                if (newX >= 0 && newX <= this.canvas.width - this.width) {
+                    this.x = newX;
+                }
+                
+                // Keep player within canvas bounds (vertical)
+                if (newY >= 0 && newY <= this.canvas.height - this.height) {
+                    this.y = newY;
+                }
+                
+                // Update facing direction based on movement
+                if (dx > 0) this.direction = 'right';
+                else if (dx < 0) this.direction = 'left';
+                else if (dy > 0) this.direction = 'down';
+                else if (dy < 0) this.direction = 'up';
+            }
+
+            /**
+             * Attempt to perform an attack
+             * @returns {boolean} True if attack was successful, false if on cooldown or stunned
+             */
+            attack() {
+                // Check if attack is possible (not on cooldown and not stunned)
+                if (this.attackCooldown <= 0 && !this.isStunned) {
+                    this.isAttacking = true;
+                    this.attackDuration = 0.4;      // Attack lasts 0.4 seconds
+                    this.attackProgress = 0;         // Reset animation progress
+                    this.attackCooldown = 0.6;       // 0.6 second cooldown before next attack
+                    return true;
+                }
+                return false;
+            }
+
+            /**
+             * Apply damage to player and trigger stun/blink effects
+             * @param {number} amount - Amount of damage to apply
+             */
+            takeDamage(amount) {
+                this.health = Math.max(0, this.health - amount);  // Reduce health, minimum 0
+                this.damageStunDuration = 0.5;                    // Stun for 0.5 seconds
+                this.damageBlinkTimer = 0.5;                      // Blink for 0.5 seconds
+                this.isStunned = true;                            // Set stunned state
+            }
+
+            /**
+             * Render player character with damage effects and animated sword
+             */
+            render() {
+                const ctx = this.ctx;
+                
+                // Calculate damage blink effect (flash red every few frames)
+                const shouldBlink = this.damageBlinkTimer > 0 && Math.floor(this.damageBlinkTimer * 20) % 2 === 0;
+                
+                // Draw player body (green normally, red when damaged)
+                ctx.fillStyle = shouldBlink ? '#ff4444' : '#00aa44';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Draw direction indicator (darker green normally, darker red when damaged)
+                ctx.fillStyle = shouldBlink ? '#aa0000' : '#004422';
+                const centerX = this.x + this.width / 2;
+                const centerY = this.y + this.height / 2;
+                
+                // Position direction indicator based on facing direction
+                switch (this.direction) {
+                    case 'up':
+                        ctx.fillRect(centerX - 4, this.y, 8, 8);
+                        break;
+                    case 'down':
+                        ctx.fillRect(centerX - 4, this.y + this.height - 8, 8, 8);
+                        break;
+                    case 'left':
+                        ctx.fillRect(this.x, centerY - 4, 8, 8);
+                        break;
+                    case 'right':
+                        ctx.fillRect(this.x + this.width - 8, centerY - 4, 8, 8);
+                        break;
+                }
+                
+                // Draw animated sword during attack
+                if (this.isAttacking) {
+                    this.renderSword(ctx, centerX, centerY);
+                }
+            }
+
+            /**
+             * Render animated sword with swing motion
+             * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+             * @param {number} centerX - Player center X coordinate
+             * @param {number} centerY - Player center Y coordinate
+             */
+            renderSword(ctx, centerX, centerY) {
+                ctx.save();  // Save current canvas state
+                
+                // Sword properties
+                const swordLength = 40;                    // Length of sword in pixels
+                const swordWidth = 6;                      // Width of sword in pixels
+                const swingAngle = Math.PI / 3;            // 60 degree swing arc
+                
+                // Calculate base angle and swing offset based on facing direction
+                let baseAngle = 0;
+                let startOffset = -swingAngle / 2;  // Start swing from -30 degrees
+                
+                // Set base angle for each direction
+                switch (this.direction) {
+                    case 'up': baseAngle = -Math.PI / 2; break;    // -90 degrees
+                    case 'down': baseAngle = Math.PI / 2; break;    // 90 degrees
+                    case 'left': baseAngle = Math.PI; break;        // 180 degrees
+                    case 'right': baseAngle = 0; break;             // 0 degrees
+                }
+                
+                // Create smooth swing animation using cosine easing
+                // This creates a slow-fast-slow motion that feels natural
+                const easeProgress = 0.5 - 0.5 * Math.cos(this.attackProgress * Math.PI);
+                const currentAngle = baseAngle + startOffset + (swingAngle * easeProgress);
+                
+                // Transform canvas to sword position and rotation
+                ctx.translate(centerX, centerY);
+                ctx.rotate(currentAngle);
+                
+                // Draw sword blade (silver/gray)
+                ctx.fillStyle = '#cccccc';
+                ctx.fillRect(0, -swordWidth / 2, swordLength - 8, swordWidth);
+                
+                // Draw sword tip (bright white)
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(swordLength - 8, -swordWidth / 2 + 1, 8, swordWidth - 2);
+                
+                // Draw sword hilt (brown)
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(-8, -swordWidth / 2 - 2, 12, swordWidth + 4);
+                
+                // Draw trailing effect during swing (yellow blur)
+                if (this.attackProgress > 0.2) {  // Only show trail after initial windup
+                    ctx.strokeStyle = `rgba(255, 255, 0, ${0.8 - this.attackProgress})`;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(-5, 0);
+                    ctx.lineTo(swordLength, 0);
+                    ctx.stroke();
+                }
+                
+                ctx.restore();  // Restore canvas state
+            }
+
+            /**
+             * Get attack hitbox bounds for collision detection
+             * @returns {Object|null} Attack bounds object or null if not attacking
+             */
+            getAttackBounds() {
+                // Only return bounds if actively attacking and past windup phase
+                if (!this.isAttacking || this.attackProgress < 0.2) return null;
+                
+                const range = 50;  // Attack range in pixels
+                
+                // Start with full 360-degree attack range
+                let bounds = {
+                    left: this.x - range,
+                    right: this.x + this.width + range,
+                    top: this.y - range,
+                    bottom: this.y + this.height + range
+                };
+                
+                // Restrict attack to directional cone based on facing direction
+                switch (this.direction) {
+                    case 'up':     // Only attack upward
+                        bounds.bottom = this.y + this.height / 2;
+                        break;
+                    case 'down':   // Only attack downward
+                        bounds.top = this.y + this.height / 2;
+                        break;
+                    case 'left':   // Only attack leftward
+                        bounds.right = this.x + this.width / 2;
+                        break;
+                    case 'right':  // Only attack rightward
+                        bounds.left = this.x + this.width / 2;
+                        break;
+                }
+                
+                return bounds;
+            }
+        }
+
+        /**
+         * Melee Enemy Character Class
+         * Handles AI movement, combat, health, and damage effects
+         */
+        class Enemy extends Component {
+            constructor(canvas, ctx, x, y) {
+                super(canvas, ctx);
+                
+                // Position and movement
+                this.x = x;                          // Starting X position
+                this.y = y;                          // Starting Y position
+                this.speed = 50;                     // Movement speed in pixels per second
+                this.originalSpeed = this.speed;     // Store original speed for stun recovery
+                
+                // Health and combat
+                this.health = 30;                    // Current health points
+                this.maxHealth = 30;                 // Maximum health points
+                this.damage = 10;                    // Damage dealt to player
+                this.attackCooldown = 0;             // Time before next attack
+                
+                // AI behavior
+                this.direction = Math.random() * Math.PI * 2;  // Random initial direction
+                this.changeDirectionTimer = 0;                 // Timer for direction changes
+                
+                // Visual appearance
+                this.color = `hsl(${Math.random() * 60}, 70%, 50%)`; // Random warm color
+                
+                // Damage and stun effects
+                this.damageStunDuration = 0;         // Time remaining stunned
+                this.damageBlinkTimer = 0;           // Time remaining for blink effect
+                this.isStunned = false;              // Whether currently stunned
+                
+                this.type = 'melee';                 // Enemy type identifier
+            }
+
+            /**
+             * Update enemy AI, movement, and effects
+             * @param {number} deltaTime - Time elapsed since last frame
+             * @param {Player} player - Reference to player object for AI targeting
+             */
+            update(deltaTime, player) {
+                // Handle damage effects and stun recovery
+                if (this.damageStunDuration > 0) {
+                    this.damageStunDuration -= deltaTime;
+                    this.damageBlinkTimer -= deltaTime;
+                    
+                    // Recover from stun when timer expires
+                    if (this.damageStunDuration <= 0) {
+                        this.isStunned = false;
+                        this.damageBlinkTimer = 0;
+                        this.speed = this.originalSpeed;  // Restore movement speed
+                    }
+                }
+                
+                // Skip AI movement while stunned
+                if (this.isStunned) return;
+                
+                // Simple AI: pursue player with some randomness for natural movement
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 50) {
+                    // Move directly towards player when far away
+                    this.x += (dx / distance) * this.speed * deltaTime;
+                    this.y += (dy / distance) * this.speed * deltaTime;
+                } else {
+                    // Use random movement when close to avoid clustering
+                    this.changeDirectionTimer -= deltaTime;
+                    if (this.changeDirectionTimer <= 0) {
+                        this.direction = Math.random() * Math.PI * 2;  // Pick new random direction
+                        this.changeDirectionTimer = 1 + Math.random(); // Change direction every 1-2 seconds
+                    }
+                    
+                    // Move in random direction at half speed
+                    this.x += Math.cos(this.direction) * this.speed * 0.5 * deltaTime;
+                    this.y += Math.sin(this.direction) * this.speed * 0.5 * deltaTime;
+                }
+                
+                // Keep enemy within canvas bounds
+                this.x = Math.max(0, Math.min(this.canvas.width - this.width, this.x));
+                this.y = Math.max(0, Math.min(this.canvas.height - this.height, this.y));
+                
+                // Handle attack cooldown
+                if (this.attackCooldown > 0) {
+                    this.attackCooldown -= deltaTime;
+                }
+            }
+
+            /**
+             * Apply damage and trigger stun effects
+             * @param {number} amount - Amount of damage to apply
+             */
+            takeDamage(amount) {
+                this.health -= amount;               // Reduce health
+                this.damageStunDuration = 0.3;       // Stun for 0.3 seconds (shorter than player)
+                this.damageBlinkTimer = 0.3;         // Blink for 0.3 seconds
+                this.isStunned = true;               // Set stunned state
+                this.speed = 0;                      // Stop all movement while stunned
+                
+                // Mark for removal if health reaches zero
+                if (this.health <= 0) {
+                    this.active = false;
+                }
+            }
+
+            /**
+             * Check if enemy can attack (not on cooldown)
+             * @returns {boolean} True if attack is ready
+             */
+            canAttack() {
+                return this.attackCooldown <= 0;
+            }
+
+            /**
+             * Perform attack and return damage amount
+             * @returns {number} Damage dealt to target
+             */
+            attack() {
+                this.attackCooldown = 1.5;  // 1.5 second cooldown between attacks
+                return this.damage;
+            }
+
+            /**
+             * Render enemy with health bar, damage effects, and stun indicators
+             */
+            render() {
+                const ctx = this.ctx;
+                
+                // Calculate damage blink effect (similar to player but faster)
+                const shouldBlink = this.damageBlinkTimer > 0 && Math.floor(this.damageBlinkTimer * 15) % 2 === 0;
+                
+                // Draw enemy body (normal color or light red when damaged)
+                if (shouldBlink) {
+                    ctx.fillStyle = '#ff6666';  // Light red when blinking
+                } else {
+                    ctx.fillStyle = this.color;  // Normal random color
+                }
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Draw health bar above enemy
+                const barWidth = this.width;
+                const barHeight = 4;
+                const healthPercent = this.health / this.maxHealth;
+                
+                // Health bar background (dark red)
+                ctx.fillStyle = '#660000';
+                ctx.fillRect(this.x, this.y - 8, barWidth, barHeight);
+                
+                // Health bar fill (changes color when low health)
+                ctx.fillStyle = healthPercent > 0.3 ? '#ff0000' : '#ff6666';
+                ctx.fillRect(this.x, this.y - 8, barWidth * healthPercent, barHeight);
+                
+                // Draw eyes (change color when blinking)
+                ctx.fillStyle = shouldBlink ? '#ffaaaa' : '#ffffff';
+                ctx.fillRect(this.x + 6, this.y + 6, 6, 6);                    // Left eye
+                ctx.fillRect(this.x + this.width - 12, this.y + 6, 6, 6);      // Right eye
+                
+                // Draw pupils
+                ctx.fillStyle = shouldBlink ? '#660000' : '#000000';
+                ctx.fillRect(this.x + 8, this.y + 8, 2, 2);                    // Left pupil
+                ctx.fillRect(this.x + this.width - 10, this.y + 8, 2, 2);      // Right pupil
+                
+                // Draw stun effects
+                if (this.isStunned) {
+                    // White outline effect
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.fillRect(this.x - 2, this.y - 2, this.width + 4, this.height + 4);
+                    
+                    // Animated rotating stars above enemy
+                    const centerX = this.x + this.width / 2;
+                    const centerY = this.y + this.height / 2;
+                    ctx.fillStyle = '#ffff00';  // Yellow stars
+                    
+                    // Draw 3 stars in rotating formation
+                    for (let i = 0; i < 3; i++) {
+                        const angle = (Date.now() / 200 + i * Math.PI * 2 / 3) % (Math.PI * 2);
+                        const starX = centerX + Math.cos(angle) * 20;
+                        const starY = centerY + Math.sin(angle) * 15 - 15;  // Offset upward
+                        this.drawStar(ctx, starX, starY, 3);
+                    }
+                }
+            }
+
+            /**
+             * Draw a simple star shape for stun effect
+             * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+             * @param {number} x - Star center X coordinate
+             * @param {number} y - Star center Y coordinate
+             * @param {number} size - Star size in pixels
+             */
+            drawStar(ctx, x, y, size) {
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.fillStyle = '#ffff00';
+                
+                // Simple cross-shaped star using two rectangles
+                ctx.fillRect(-size/2, -size/2, size, size);      // Horizontal bar
+                ctx.fillRect(-size/4, -size, size/2, size*2);    // Vertical bar
+                
+                ctx.restore();
+            }
+        }
+
+        /**
+         * Ranged Enemy Class
+         * Shoots projectiles at the player from a distance
+         */
+        class RangedEnemy extends Component {
+            constructor(canvas, ctx, x, y) {
+                super(canvas, ctx);
+                
+                // Position and movement
+                this.x = x;
+                this.y = y;
+                this.speed = 30;                     // Slower than melee enemies
+                this.originalSpeed = this.speed;
+                
+                // Health and combat
+                this.health = 25;                    // Slightly less health than melee
+                this.maxHealth = 25;
+                this.damage = 15;                    // Higher damage via projectiles
+                this.attackCooldown = 0;
+                this.shootCooldown = 0;              // Separate cooldown for shooting
+                
+                // AI behavior
+                this.direction = Math.random() * Math.PI * 2;
+                this.changeDirectionTimer = 0;
+                this.preferredDistance = 150;        // Preferred distance from player
+                
+                // Visual appearance (purple/blue theme for ranged enemies)
+                this.color = `hsl(${240 + Math.random() * 60}, 70%, 50%)`;
+                
+                // Damage and stun effects
+                this.damageStunDuration = 0;
+                this.damageBlinkTimer = 0;
+                this.isStunned = false;
+                
+                this.type = 'ranged';
+            }
+
+            /**
+             * Update ranged enemy AI and shooting behavior
+             * @param {number} deltaTime - Time elapsed since last frame
+             * @param {Player} player - Reference to player object
+             */
+            update(deltaTime, player) {
+                // Handle damage effects and stun recovery
+                if (this.damageStunDuration > 0) {
+                    this.damageStunDuration -= deltaTime;
+                    this.damageBlinkTimer -= deltaTime;
+                    
+                    if (this.damageStunDuration <= 0) {
+                        this.isStunned = false;
+                        this.damageBlinkTimer = 0;
+                        this.speed = this.originalSpeed;
+                    }
+                }
+                
+                // Skip AI while stunned
+                if (this.isStunned) return;
+                
+                // Calculate distance and direction to player
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Ranged AI: maintain distance and shoot
+                if (distance < this.preferredDistance - 20) {
+                    // Too close - move away from player
+                    this.x -= (dx / distance) * this.speed * deltaTime;
+                    this.y -= (dy / distance) * this.speed * deltaTime;
+                } else if (distance > this.preferredDistance + 30) {
+                    // Too far - move closer to player
+                    this.x += (dx / distance) * this.speed * deltaTime * 0.5;
+                    this.y += (dy / distance) * this.speed * deltaTime * 0.5;
+                } else {
+                    // Good distance - strafe randomly
+                    this.changeDirectionTimer -= deltaTime;
+                    if (this.changeDirectionTimer <= 0) {
+                        this.direction = Math.random() * Math.PI * 2;
+                        this.changeDirectionTimer = 2 + Math.random();
+                    }
+                    
+                    // Perpendicular movement to player direction
+                    const perpAngle = Math.atan2(dy, dx) + Math.PI / 2;
+                    this.x += Math.cos(perpAngle) * this.speed * 0.3 * deltaTime;
+                    this.y += Math.sin(perpAngle) * this.speed * 0.3 * deltaTime;
+                }
+                
+                // Keep within bounds
+                this.x = Math.max(0, Math.min(this.canvas.width - this.width, this.x));
+                this.y = Math.max(0, Math.min(this.canvas.height - this.height, this.y));
+                
+                // Handle shooting cooldown
+                if (this.shootCooldown > 0) {
+                    this.shootCooldown -= deltaTime;
+                }
+                
+                if (this.attackCooldown > 0) {
+                    this.attackCooldown -= deltaTime;
+                }
+            }
+
+            /**
+             * Apply damage and trigger stun effects
+             * @param {number} amount - Amount of damage to apply
+             */
+            takeDamage(amount) {
+                this.health -= amount;
+                this.damageStunDuration = 0.3;
+                this.damageBlinkTimer = 0.3;
+                this.isStunned = true;
+                this.speed = 0;
+                
+                if (this.health <= 0) {
+                    this.active = false;
+                }
+            }
+
+            /**
+             * Check if enemy can shoot projectiles
+             * @returns {boolean} True if can shoot
+             */
+            canShoot() {
+                return this.shootCooldown <= 0;
+            }
+
+            /**
+             * Attempt to shoot a projectile at the player
+             * @param {Player} player - Target player
+             * @returns {Projectile|null} New projectile or null if on cooldown
+             */
+            shoot(player) {
+                if (this.canShoot()) {
+                    this.shootCooldown = 2.0;  // 2 second cooldown between shots
+                    
+                    // Create projectile from center of enemy towards player center
+                    const startX = this.x + this.width / 2;
+                    const startY = this.y + this.height / 2;
+                    const targetX = player.x + player.width / 2;
+                    const targetY = player.y + player.height / 2;
+                    
+                    return new Projectile(this.canvas, this.ctx, startX, startY, targetX, targetY);
+                }
+                return null;
+            }
+
+            /**
+             * Check if enemy can perform melee attack (for close range)
+             * @returns {boolean} True if attack is ready
+             */
+            canAttack() {
+                return this.attackCooldown <= 0;
+            }
+
+            /**
+             * Perform melee attack (fallback for close combat)
+             * @returns {number} Damage dealt
+             */
+            attack() {
+                this.attackCooldown = 2.0;
+                return this.damage;
+            }
+
+            /**
+             * Render ranged enemy with distinct visual style
+             */
+            render() {
+                const ctx = this.ctx;
+                
+                // Calculate blink effect
+                const shouldBlink = this.damageBlinkTimer > 0 && Math.floor(this.damageBlinkTimer * 15) % 2 === 0;
+                
+                // Draw main body (blue/purple theme)
+                if (shouldBlink) {
+                    ctx.fillStyle = '#ff6666';
+                } else {
+                    ctx.fillStyle = this.color;
+                }
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Draw distinctive pattern for ranged enemies
+                if (!shouldBlink) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(this.x + 4, this.y + 4, this.width - 8, 4);  // Horizontal stripe
+                    ctx.fillRect(this.x + 4, this.y + this.height - 8, this.width - 8, 4);  // Another stripe
+                }
+                
+                // Health bar
+                const barWidth = this.width;
+                const barHeight = 4;
+                const healthPercent = this.health / this.maxHealth;
+                
+                ctx.fillStyle = '#660000';
+                ctx.fillRect(this.x, this.y - 8, barWidth, barHeight);
+                
+                ctx.fillStyle = healthPercent > 0.3 ? '#0066ff' : '#6666ff';  // Blue health bar
+                ctx.fillRect(this.x, this.y - 8, barWidth * healthPercent, barHeight);
+                
+                // Draw eyes (triangular for ranged enemies)
+                ctx.fillStyle = shouldBlink ? '#ffaaaa' : '#ffffff';
+                // Left eye (triangle pointing right)
+                ctx.beginPath();
+                ctx.moveTo(this.x + 6, this.y + 6);
+                ctx.lineTo(this.x + 12, this.y + 9);
+                ctx.lineTo(this.x + 6, this.y + 12);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Right eye (triangle pointing left)
+                ctx.beginPath();
+                ctx.moveTo(this.x + this.width - 6, this.y + 6);
+                ctx.lineTo(this.x + this.width - 12, this.y + 9);
+                ctx.lineTo(this.x + this.width - 6, this.y + 12);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Shooting indicator
+                if (this.shootCooldown > 1.5) {  // Show charging effect
+                    ctx.fillStyle = '#ffff00';
+                    const chargeSize = (2.0 - this.shootCooldown) * 10;  // Grows as it charges
+                    ctx.fillRect(this.x + this.width/2 - chargeSize/2, this.y - 15, chargeSize, 3);
+                }
+                
+                // Stun effects
+                if (this.isStunned) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.fillRect(this.x - 2, this.y - 2, this.width + 4, this.height + 4);
+                    
+                    const centerX = this.x + this.width / 2;
+                    const centerY = this.y + this.height / 2;
+                    ctx.fillStyle = '#ffff00';
+                    
+                    for (let i = 0; i < 3; i++) {
+                        const angle = (Date.now() / 200 + i * Math.PI * 2 / 3) % (Math.PI * 2);
+                        const starX = centerX + Math.cos(angle) * 20;
+                        const starY = centerY + Math.sin(angle) * 15 - 15;
+                        this.drawStar(ctx, starX, starY, 3);
+                    }
+                }
+            }
+
+            /**
+             * Draw star effect for stun
+             */
+            drawStar(ctx, x, y, size) {
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.fillStyle = '#ffff00';
+                
+                ctx.fillRect(-size/2, -size/2, size, size);
+                ctx.fillRect(-size/4, -size, size/2, size*2);
+                
+                ctx.restore();
+            }
+        }
+
+        /**
+         * Main Game Class
+         * Manages game state, entities, input, rendering, and menu system
+         */
+        class Game {
+            constructor() {
+                // Get canvas and rendering context
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Input and timing
+                this.keys = {};              // Object to track pressed keys
+                this.lastTime = 0;           // Last frame timestamp for delta time calculation
+                
+                // Game state
+                this.level = 1;              // Current level number
+                this.score = 0;              // Player's score
+                this.gameState = 'menu';     // Current state: 'menu', 'playing', 'gameOver', 'victory'
+                this.gameMode = 'campaign';  // 'campaign' or 'endless'
+                this.maxLevel = 8;           // Maximum available level
+                this.unlockedLevels = 1;     // Levels unlocked by player
+                
+                // Game entities
+                this.player = null;
+                this.enemies = [];
+                this.projectiles = [];
+                
+                // Initialize menu and start game loop
+                this.generateLevelButtons();
+                this.setupEvents();
+                this.gameLoop();
+            }
+
+            /**
+             * Generate level select buttons in the menu
+             */
+            generateLevelButtons() {
+                const buttonContainer = document.getElementById('levelButtons');
+                buttonContainer.innerHTML = '';
+                
+                for (let i = 1; i <= this.maxLevel; i++) {
+                    const button = document.createElement('button');
+                    button.className = i <= this.unlockedLevels ? 'level-btn' : 'level-btn locked';
+                    button.textContent = `Level ${i}`;
+                    button.disabled = i > this.unlockedLevels;
+                    
+                    if (i <= this.unlockedLevels) {
+                        button.onclick = () => this.startLevel(i);
+                    }
+                    
+                    buttonContainer.appendChild(button);
+                }
+            }
+
+            /**
+             * Start a specific level
+             * @param {number} levelNum - Level number to start
+             */
+            startLevel(levelNum) {
+                this.level = levelNum;
+                this.gameMode = 'campaign';
+                this.gameState = 'playing';
+                this.score = 0;
+                this.hideMenu();
+                this.init();
+            }
+
+            /**
+             * Start endless mode with continuous spawning
+             */
+            startEndlessMode() {
+                this.level = 1;
+                this.gameMode = 'endless';
+                this.gameState = 'playing';
+                this.score = 0;
+                this.hideMenu();
+                this.init();
+            }
+
+            /**
+             * Show game instructions
+             */
+            showInstructions() {
+                alert(`DUNGEON QUEST - Instructions
+
+MOVEMENT: Use WASD keys to move your character
+COMBAT: Press SPACE to attack with your sword
+GOAL: Defeat all enemies to progress to the next level
+
+ENEMY TYPES:
+• Melee Enemies (colored) - Chase you for close combat
+• Ranged Enemies (blue/purple) - Shoot projectiles from distance
+
+STRATEGY:
+• Keep moving to avoid enemy attacks
+• Time your sword swings carefully
+• Watch out for projectiles from ranged enemies
+• Use walls and positioning to your advantage
+
+Good luck, adventurer!`);
+            }
+
+            /**
+             * Hide the main menu
+             */
+            hideMenu() {
+                document.getElementById('menuScreen').style.display = 'none';
+            }
+
+            /**
+             * Show the main menu
+             */
+            showMenu() {
+                document.getElementById('menuScreen').style.display = 'flex';
+                document.getElementById('gameOver').style.display = 'none';
+                document.getElementById('victory').style.display = 'none';
+                this.gameState = 'menu';
+            }
+
+            /**
+             * Initialize game objects and UI
+             */
+            init() {
+                // Create player character
+                this.player = new Player(this.canvas, this.ctx);
+                
+                // Initialize entity arrays
+                this.enemies = [];
+                this.projectiles = [];
+                
+                // Reset player health for new level/game
+                this.player.health = this.player.maxHealth;
+                
+                // Spawn enemies for current level
+                this.spawnEnemies();
+                
+                // Update UI display
+                this.updateUI();
+            }
+
+            /**
+             * Spawn enemies for current level with mixed types
+             */
+            spawnEnemies() {
+                let meleeCount, rangedCount;
+                
+                if (this.gameMode === 'endless') {
+                    // Endless mode: exponential difficulty scaling
+                    meleeCount = 2 + this.level;
+                    rangedCount = Math.floor(this.level / 2);
+                } else {
+                    // Campaign mode: balanced progression
+                    meleeCount = 2 + this.level;
+                    rangedCount = Math.max(0, this.level - 2);  // Ranged enemies from level 3+
+                }
+                
+                // Spawn melee enemies
+                for (let i = 0; i < meleeCount; i++) {
+                    let x, y;
+                    do {
+                        x = Math.random() * (this.canvas.width - 32);
+                        y = Math.random() * (this.canvas.height - 32);
+                    } while (Math.sqrt((x - this.player.x) ** 2 + (y - this.player.y) ** 2) < 120);
+                    
+                    this.enemies.push(new Enemy(this.canvas, this.ctx, x, y));
+                }
+                
+                // Spawn ranged enemies
+                for (let i = 0; i < rangedCount; i++) {
+                    let x, y;
+                    do {
+                        x = Math.random() * (this.canvas.width - 32);
+                        y = Math.random() * (this.canvas.height - 32);
+                    } while (Math.sqrt((x - this.player.x) ** 2 + (y - this.player.y) ** 2) < 150);
+                    
+                    this.enemies.push(new RangedEnemy(this.canvas, this.ctx, x, y));
+                }
+            }
+
+            /**
+             * Set up keyboard event listeners
+             */
+            setupEvents() {
+                // Set up menu button events
+                document.getElementById('endlessBtn').onclick = () => this.startEndlessMode();
+                document.getElementById('instructionsBtn').onclick = () => this.showInstructions();
+                
+                // Handle key press events
+                window.addEventListener('keydown', (e) => {
+                    this.keys[e.key.toLowerCase()] = true;
+                    
+                    // Handle spacebar attack
+                    if (e.key.toLowerCase() === ' ') {
+                        e.preventDefault();
+                        if (this.gameState === 'playing') {
+                            this.player.attack();
+                        } else if (this.gameState === 'victory' && this.gameMode === 'campaign') {
+                            this.nextLevel();
+                        }
+                    }
+                    
+                    // Handle escape key for menu
+                    if (e.key.toLowerCase() === 'escape') {
+                        e.preventDefault();
+                        if (this.gameState === 'playing') {
+                            this.showMenu();
+                        }
+                    }
+                    
+                    // Handle restart key
+                    if (e.key.toLowerCase() === 'r') {
+                        if (this.gameState === 'gameOver') {
+                            this.restart();
+                        }
+                    }
+                });
+                
+                // Handle key release events
+                window.addEventListener('keyup', (e) => {
+                    this.keys[e.key.toLowerCase()] = false;
+                });
+            }
+
+            /**
+             * Update all game objects and check game conditions
+             * @param {number} deltaTime - Time elapsed since last frame
+             */
+            update(deltaTime) {
+                // Only update during active gameplay
+                if (this.gameState !== 'playing') return;
+                
+                // Handle player movement based on pressed keys
+                let dx = 0, dy = 0;
+                if (this.keys['w']) dy = -1;    // Up
+                if (this.keys['s']) dy = 1;     // Down
+                if (this.keys['a']) dx = -1;    // Left
+                if (this.keys['d']) dx = 1;     // Right
+                
+                // Apply movement if any keys are pressed
+                if (dx !== 0 || dy !== 0) {
+                    this.player.move(dx, dy, deltaTime);
+                }
+                
+                // Update player
+                this.player.update(deltaTime);
+                
+                // Update enemies and handle ranged enemy shooting
+                this.enemies.forEach(enemy => {
+                    if (enemy.active) {
+                        enemy.update(deltaTime, this.player);
+                        
+                        // Handle ranged enemy shooting
+                        if (enemy.type === 'ranged' && enemy.canShoot()) {
+                            const projectile = enemy.shoot(this.player);
+                            if (projectile) {
+                                this.projectiles.push(projectile);
+                            }
+                        }
+                    }
+                });
+                
+                // Update projectiles
+                this.projectiles.forEach(projectile => {
+                    if (projectile.active) {
+                        projectile.update(deltaTime);
+                    }
+                });
+                
+                // Check all collisions
+                this.checkCollisions();
+                
+                // Remove inactive entities
+                this.enemies = this.enemies.filter(enemy => enemy.active);
+                this.projectiles = this.projectiles.filter(projectile => projectile.active);
+                
+                // Check win condition
+                if (this.enemies.length === 0) {
+                    this.levelComplete();
+                }
+                
+                // Check game over condition
+                if (this.player.health <= 0) {
+                    this.gameOver();
+                }
+            }
+
+            /**
+             * Check collisions between all game entities
+             */
+            checkCollisions() {
+                const attackBounds = this.player.getAttackBounds();
+                
+                // Player attacks vs enemies
+                this.enemies.forEach(enemy => {
+                    if (!enemy.active) return;
+                    
+                    if (attackBounds && this.boundsCollide(attackBounds, enemy.getBounds())) {
+                        enemy.takeDamage(25);
+                        if (!enemy.active) {
+                            this.score += enemy.type === 'ranged' ? 150 : 100;  // More points for ranged enemies
+                        }
+                    }
+                    
+                    // Enemy melee attacks vs player
+                    if (this.player.collidesWith(enemy) && enemy.canAttack()) {
+                        const damage = enemy.attack();
+                        this.player.takeDamage(damage);
+                    }
+                });
+                
+                // Player attacks vs projectiles (can destroy them)
+                if (attackBounds) {
+                    this.projectiles.forEach(projectile => {
+                        if (projectile.active && this.boundsCollide(attackBounds, projectile.getBounds())) {
+                            projectile.active = false;
+                            this.score += 25;  // Bonus points for deflecting projectiles
+                        }
+                    });
+                }
+                
+                // Projectiles vs player
+                this.projectiles.forEach(projectile => {
+                    if (projectile.active && this.player.collidesWith(projectile)) {
+                        this.player.takeDamage(projectile.damage);
+                        projectile.active = false;  // Remove projectile after hit
+                    }
+                });
+                
+                this.updateUI();
+            }
+
+            /**
+             * Helper function for bounds collision detection
+             */
+            boundsCollide(a, b) {
+                return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+            }
+
+            /**
+             * Handle level completion
+             */
+            levelComplete() {
+                if (this.gameMode === 'campaign') {
+                    // Campaign mode: show victory screen
+                    this.gameState = 'victory';
+                    document.getElementById('levelScore').textContent = this.score;
+                    document.getElementById('victory').style.display = 'block';
+                    
+                    // Unlock next level
+                    if (this.level >= this.unlockedLevels && this.level < this.maxLevel) {
+                        this.unlockedLevels = this.level + 1;
+                        this.generateLevelButtons();
+                    }
+                } else {
+                    // Endless mode: automatically advance to next level
+                    this.level++;
+                    this.score += 500;  // Level bonus
+                    this.player.health = Math.min(this.player.maxHealth, this.player.health + 25);  // Heal player
+                    this.spawnEnemies();
+                    this.updateUI();
+                }
+            }
+
+            /**
+             * Advance to next level in campaign mode
+             */
+            nextLevel() {
+                if (this.level < this.maxLevel) {
+                    this.level++;
+                    this.score += 500;
+                    this.player.health = Math.min(this.player.maxHealth, this.player.health + 25);
+                    document.getElementById('victory').style.display = 'none';
+                    this.gameState = 'playing';
+                    this.spawnEnemies();
+                    this.updateUI();
+                } else {
+                    // Completed all levels
+                    alert('Congratulations! You have completed all levels!');
+                    this.showMenu();
+                }
+            }
+
+            /**
+             * Handle game over condition
+             */
+            gameOver() {
+                this.gameState = 'gameOver';
+                document.getElementById('finalScore').textContent = this.score;
+                document.getElementById('gameOver').style.display = 'block';
+            }
+
+            /**
+             * Update UI elements with current game stats
+             */
+            updateUI() {
+                document.getElementById('healthText').textContent = this.player ? this.player.health : 100;
+                document.getElementById('scoreText').textContent = this.score;
+                document.getElementById('levelText').textContent = this.level;
+                
+                if (this.player) {
+                    const healthPercent = (this.player.health / this.player.maxHealth) * 100;
+                    document.getElementById('healthBar').style.width = healthPercent + '%';
+                }
+            }
+
+            /**
+             * Restart current level/mode
+             */
+            restart() {
+                this.gameState = 'playing';
+                document.getElementById('gameOver').style.display = 'none';
+                document.getElementById('victory').style.display = 'none';
+                
+                if (this.gameMode === 'endless') {
+                    this.level = 1;
+                    this.score = 0;
+                }
+                
+                this.init();
+            }
+
+            /**
+             * Render all game objects and effects
+             */
+            render() {
+                // Clear canvas with grass-like background
+                this.ctx.fillStyle = '#2d5a27';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw grass pattern
+                this.ctx.fillStyle = '#1a4a1a';
+                for (let x = 0; x < this.canvas.width; x += 40) {
+                    for (let y = 0; y < this.canvas.height; y += 40) {
+                        if ((x + y) % 80 === 0) {
+                            this.ctx.fillRect(x, y, 20, 20);
+                        }
+                    }
+                }
+                
+                // Don't render game objects during menu
+                if (this.gameState === 'menu') return;
+                
+                // Render all projectiles first (behind other entities)
+                this.projectiles.forEach(projectile => {
+                    if (projectile.active) {
+                        projectile.render();
+                    }
+                });
+                
+                // Render all enemies
+                this.enemies.forEach(enemy => {
+                    if (enemy.active) {
+                        enemy.render();
+                    }
+                });
+                
+                // Render player on top
+                if (this.player) {
+                    this.player.render();
+                }
+            }
+
+            /**
+             * Main game loop - handles timing, updates, and rendering
+             * @param {number} currentTime - Current timestamp from requestAnimationFrame
+             */
+            gameLoop(currentTime = 0) {
+                const deltaTime = (currentTime - this.lastTime) / 1000;
+                this.lastTime = currentTime;
+                
+                this.update(deltaTime);
+                this.render();
+                
+                requestAnimationFrame((time) => this.gameLoop(time));
+            }
+        }
+
+        // Start the game when page loads
+        let game;
+        window.addEventListener('load', () => {
+            game = new Game();
+        });
+    </script>
+</body>
+</html>
